@@ -3,7 +3,7 @@
     "ModVersion": "1.1",
     "ModAuthor": "Carademono",
     "ContactInfo": "forums.dfworkshop.net",
-    "DFUnity_Version": "0.13.0",
+    "DFUnity_Version": "0.12.0",
     "ModDescription": "https://forums.dfworkshop.net/",
     "GUID": "6f8cce46-8644-42e5-9178-50298f8417bf",
     "Files": [
@@ -1509,6 +1509,7 @@
         "Assets/Game/Mods/AnimatedPeople/Textures/346_0-6.png",
         "Assets/Game/Mods/AnimatedPeople/Textures/346_0-5.png",
         "Assets/Game/Mods/AnimatedPeople/Scripts/AnimatedPeopleBillboard.cs",
-        "Assets/Game/Mods/AnimatedPeople/Prefabs/182_12.prefab"
+        "Assets/Game/Mods/AnimatedPeople/Prefabs/182_12.prefab",
+        "Assets/Game/Mods/AnimatedPeople/AnimatedPeople.dfmod.json"
     ]
 }
