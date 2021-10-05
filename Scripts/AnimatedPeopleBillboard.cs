@@ -17,6 +17,7 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 
 using static DaggerfallWorkshop.DaggerfallBillboard;
+using DaggerfallConnect.Arena2;
 
 namespace AnimatedPeople
 {
@@ -173,9 +174,9 @@ namespace AnimatedPeople
             else
             {
                 // Set imported textures for current frame
-                meshRenderer.material.SetTexture(Uniforms.MainTex, summary.ImportedTextures.Albedo[summary.CurrentFrame]);
+                meshRenderer.material.SetTexture("_MainTex", summary.ImportedTextures.Albedo[summary.CurrentFrame]);
                 if (summary.ImportedTextures.IsEmissive)
-                    meshRenderer.material.SetTexture(Uniforms.EmissionMap, summary.ImportedTextures.Emission[summary.CurrentFrame]);
+                    meshRenderer.material.SetTexture("_EmissionMap", summary.ImportedTextures.Emission[summary.CurrentFrame]);
             }
         }
 
@@ -306,10 +307,23 @@ namespace AnimatedPeople
         /// </summary>
         void AlignToBase()
         {
-            // Calcuate offset for correct positioning in scene
-            Vector3 offset = Vector3.zero;
-            offset.y = (summary.Size.y / 2);
-            transform.position += offset;
+            // MeshReplace.AlignToBase lowers custom billboard prefabs in dungeons for some reason
+            // Just put them back up
+            if (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon)
+            {
+                int height = ImageReader.GetImageData(TextureFile.IndexToFileName(Archive), Record, createTexture: false).height;
+
+                Vector3 offset = Vector3.zero;
+                offset.y = height / 2 * MeshReader.GlobalScale;
+                transform.position += offset;
+            }
+            else
+            {
+                // Calcuate offset for correct positioning in scene
+                Vector3 offset = Vector3.zero;
+                offset.y = (summary.Size.y / 2);
+                transform.position += offset;
+            }
         }
     }
 }
