@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5003663202549056389}
   - component: {fileID: 967788566636841434}
   m_Layer: 0
-  m_Name: 182_12
+  m_Name: 182_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -98,7 +98,7 @@ MonoBehaviour:
   RepeatMin: 0
   RepeatMax: 1
   Archive: 182
-  Record: 12
+  Record: 1
   summary:
     Size: {x: 0, y: 0}
     Rect:
