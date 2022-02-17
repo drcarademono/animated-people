@@ -16,7 +16,6 @@ using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 
-using static DaggerfallWorkshop.DaggerfallBillboard;
 using DaggerfallConnect.Arena2;
 
 namespace AnimatedPeople
@@ -25,7 +24,7 @@ namespace AnimatedPeople
     [ImportedComponent]
     [RequireComponent(typeof(MeshFilter))]
     [RequireComponent(typeof(MeshRenderer))]
-    public class AnimatedPeopleBillboard : MonoBehaviour
+    public class AnimatedPeopleBillboard : Billboard
     {
         public float SecondsPerFrame = 0.2f;     // How much time between frames
 
@@ -37,16 +36,20 @@ namespace AnimatedPeople
         public int Archive = 182;
         public int Record = 0;
 
-        [SerializeField]
-        BillboardSummary summary = new BillboardSummary();
+        #region Billboard
+        public override int FramesPerSecond
+        {
+            get { return Mathf.RoundToInt(1 / SecondsPerFrame); }
+            set { SecondsPerFrame = 1 / value; }
+        }
+
+        public override bool OneShot { get; set; }
+        public override bool FaceY { get; set; }
+        #endregion
 
         Camera mainCamera = null;
         MeshFilter meshFilter = null;
         MeshRenderer meshRenderer;
-        public BillboardSummary Summary
-        {
-            get { return summary; }
-        }
 
         float animationDelay = 0.0f;
         int repeatCount = 0;
@@ -189,7 +192,7 @@ namespace AnimatedPeople
         /// <param name="record">Texture record index.</param>
         /// <param name="frame">Frame index.</param>
         /// <returns>Material.</returns>
-        Material SetMaterial(int archive, int record)
+        public override Material SetMaterial(int archive, int record, int frame = 0)
         {
             // Get DaggerfallUnity
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
@@ -305,7 +308,7 @@ namespace AnimatedPeople
         /// Aligns billboard to centre of base, rather than exact centre.
         /// Must have already set material using SetMaterial() for billboard dimensions to be known.
         /// </summary>
-        void AlignToBase()
+        public override void AlignToBase()
         {
             // MeshReplace.AlignToBase lowers custom billboard prefabs in dungeons for some reason
             // Just put them back up
@@ -324,6 +327,103 @@ namespace AnimatedPeople
                 offset.y = (summary.Size.y / 2);
                 transform.position += offset;
             }
+        }
+
+        public override void SetRMBPeopleData(DFBlock.RmbBlockPeopleRecord person)
+        {
+            SetRMBPeopleData(person.FactionID, person.Flags, person.Position);
+        }
+
+        /// <summary>
+        /// Sets people data directly.
+        /// </summary>
+        /// <param name="factionID">FactionID of person.</param>
+        /// <param name="flags">Person flags.</param>
+        public override void SetRMBPeopleData(int factionID, int flags, long position = 0)
+        {
+            // Add common data
+            summary.FactionOrMobileID = factionID;
+            summary.FixedEnemyType = MobileTypes.None;
+            summary.Flags = flags;
+
+            // TEMP: Add name seed
+            summary.NameSeed = (int)position;
+        }
+
+        public override void SetRDBResourceData(DFBlock.RdbFlatResource resource)
+        {
+            // Add common data
+            summary.Flags = resource.Flags;
+            summary.FactionOrMobileID = (int)resource.FactionOrMobileId;
+            summary.FixedEnemyType = MobileTypes.None;
+
+            // TEMP: Add name seed
+            summary.NameSeed = (int)resource.Position;
+
+            // Set data of fixed mobile types (e.g. non-random enemy spawn)
+            if (resource.TextureArchive == 199)
+            {
+                if (resource.TextureRecord == 16)
+                {
+                    summary.IsMobile = true;
+                    summary.EditorFlatType = EditorFlatTypes.FixedMobile;
+                    summary.FixedEnemyType = (MobileTypes)(summary.FactionOrMobileID & 0xff);
+                }
+                else if (resource.TextureRecord == 10) // Start marker. Holds data for dungeon block water level and castle block status.
+                {
+                    if (resource.SoundIndex != 0)
+                        summary.WaterLevel = (short)(-8 * resource.SoundIndex);
+                    else
+                        summary.WaterLevel = 10000; // no water
+
+                    summary.CastleBlock = (resource.Magnitude != 0);
+                }
+            }
+        }
+
+        public override Material SetMaterial(Texture2D texture, Vector2 size, bool isLightArchive = false)
+        {
+            // Get DaggerfallUnity
+            DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
+            if (!dfUnity.IsReady)
+                return null;
+
+            // Get references
+            meshRenderer = GetComponent<MeshRenderer>();
+
+            // Create material
+            Material material = MaterialReader.CreateBillboardMaterial();
+            material.mainTexture = texture;
+
+            // Create mesh
+            Mesh mesh = dfUnity.MeshReader.GetSimpleBillboardMesh(size);
+
+            // Set summary
+            summary.FlatType = FlatTypes.Decoration;
+            summary.Size = size;
+
+            // Assign mesh and material
+            MeshFilter meshFilter = GetComponent<MeshFilter>();
+            Mesh oldMesh = meshFilter.sharedMesh;
+            if (mesh)
+            {
+                meshFilter.sharedMesh = mesh;
+                meshRenderer.sharedMaterial = material;
+            }
+            if (oldMesh)
+            {
+                // The old mesh is no longer required
+#if UNITY_EDITOR
+                DestroyImmediate(oldMesh);
+#else
+                Destroy(oldMesh);
+#endif
+            }
+
+            // General billboard shadows if enabled
+            meshRenderer.shadowCastingMode = (DaggerfallUnity.Settings.GeneralBillboardShadows && !isLightArchive) ? ShadowCastingMode.TwoSided : ShadowCastingMode.Off;
+
+            return material;
         }
     }
 }
