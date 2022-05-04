@@ -92,13 +92,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77c1a55b5a4eeca4384417a163af0953, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SecondsPerFrame: 0.2
-  DelayMin: 3
-  DelayMax: 6
-  RepeatMin: 0
-  RepeatMax: 1
-  Archive: 182
-  Record: 299
   summary:
     Size: {x: 0, y: 0}
     Rect:
@@ -123,3 +116,10 @@ MonoBehaviour:
     FixedEnemyType: 0
     WaterLevel: 0
     CastleBlock: 0
+  SecondsPerFrame: 0.2
+  DelayMin: 3
+  DelayMax: 6
+  RepeatMin: 0
+  RepeatMax: 1
+  Archive: 182
+  Record: 29
