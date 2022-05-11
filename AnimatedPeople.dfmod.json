@@ -1,9 +1,9 @@
 {
     "ModTitle": "Vanilla Enhanced - Animated People",
-    "ModVersion": "2.0",
+    "ModVersion": "2.2",
     "ModAuthor": "carademono & kaboissonneault",
     "ContactInfo": "forums.dfworkshop.net",
-    "DFUnity_Version": "0.12.0",
+    "DFUnity_Version": "0.13.5",
     "ModDescription": "This mod animates all unanimated NPC flats, bringing life to the formerly static people of the Iliac Bay.",
     "GUID": "02f15f60-4f90-42eb-b36b-4c238cb3be27",
     "Files": [
