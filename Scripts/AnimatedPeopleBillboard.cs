@@ -55,15 +55,12 @@ namespace AnimatedPeople
         int repeatCount = 0;
         float frameBuffer = 0.0f;
 
+        bool firstUpdate = true;
+
         void Start()
         {
             if (Application.isPlaying)
-            {
-                SetMaterial(Archive, Record);
-                AlignToBase();
-
-                summary.CurrentFrame = GetFrameCount() - 1;
-
+            {                
                 // Get component references
                 mainCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
                 meshFilter = GetComponent<MeshFilter>();
@@ -77,23 +74,41 @@ namespace AnimatedPeople
                     // Example is the treasury in Daggerfall castle, some action records flow through the quest item marker
                     meshRenderer.enabled = false;
                 }
+            }
+        }
 
-                SetCurrentFrame();
+        private void OnDisable()
+        {
+            firstUpdate = true;
+        }
 
-                if(DelayMax != 0.0f)
-                {
-                    animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
-                }
+        void SetupAnimatedPeople()
+        {
+            SetMaterial(Archive, Record);
+            AlignToBase();
 
-                if(RepeatMax != 0)
-                {
-                    repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
-                }
+            summary.CurrentFrame = GetFrameCount() - 1;
+
+            SetCurrentFrame();
+
+            if (DelayMax != 0.0f)
+            {
+                animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
+            }
+
+            if (RepeatMax != 0)
+            {
+                repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
             }
         }
 
         void Update()
         {
+            if(firstUpdate)
+            {
+                SetupAnimatedPeople();
+                firstUpdate = false;
+            }
 
             // Rotate to face camera in game
             // Do not rotate if MeshRenderer disabled. The player can't see it anyway and this could be a hidden editor marker with child objects.
