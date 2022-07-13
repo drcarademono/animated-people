@@ -56,6 +56,7 @@ namespace AnimatedPeople
         float frameBuffer = 0.0f;
 
         bool firstUpdate = true;
+        bool aligned = false;
 
         void Start()
         {
@@ -327,6 +328,9 @@ namespace AnimatedPeople
         /// </summary>
         public override void AlignToBase()
         {
+            if (aligned)
+                return;
+                        
             // MeshReplace.AlignToBase lowers custom billboard prefabs in dungeons for some reason
             // Just put them back up
             if (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon)
@@ -344,6 +348,8 @@ namespace AnimatedPeople
                 offset.y = (summary.Size.y / 2);
                 transform.position += offset;
             }
+
+            aligned = true;
         }
 
         public override void SetRMBPeopleData(DFBlock.RmbBlockPeopleRecord person)
