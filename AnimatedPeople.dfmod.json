@@ -1,6 +1,6 @@
 {
     "ModTitle": "Vanilla Enhanced - Animated People",
-    "ModVersion": "2.6",
+    "ModVersion": "3.0",
     "ModAuthor": "carademono & kaboissonneault",
     "ContactInfo": "forums.dfworkshop.net",
     "DFUnity_Version": "0.13.5",
@@ -1334,6 +1334,7 @@
         "Assets/Game/Mods/animated-people/Textures/183_10-1.png",
         "Assets/Game/Mods/animated-people/Prefabs/184_20.prefab",
         "Assets/Game/Mods/animated-people/Textures/180_3-1.png",
-        "Assets/Game/Mods/animated-people/Prefabs/184_16.prefab"
+        "Assets/Game/Mods/animated-people/Prefabs/184_16.prefab",
+        "Assets/Game/Mods/animated-people/Textures/184_23-1.png"
     ]
 }
