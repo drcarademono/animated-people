@@ -200,9 +200,8 @@ namespace AnimatedPeople
         [MenuItem("Daggerfall Tools/Vanilla Enhanced/Generate Animated People")]
         static void Init()
         {
-            string animatedPeoplePath = Path.Combine(Application.dataPath, "Game", "Mods", "animated-people", "Prefabs");
-
-            if (!Directory.Exists(animatedPeoplePath))
+            string animatedPeoplePath = Path.Combine("Assets/Game/Mods/animated-people/Prefabs");
+            if(!AssetDatabase.IsValidFolder(animatedPeoplePath))
                 AssetDatabase.CreateFolder("Assets/Game/Mods/animated-people", "Prefabs");
 
             foreach (ArchiveRecord animatedRecord in animatedRecords)
