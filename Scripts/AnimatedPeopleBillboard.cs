@@ -17,6 +17,8 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 
 using DaggerfallConnect.Arena2;
+using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
+using System.Collections.Generic;
 
 namespace AnimatedPeople
 {
@@ -26,6 +28,12 @@ namespace AnimatedPeople
     [RequireComponent(typeof(MeshRenderer))]
     public class AnimatedPeopleBillboard : Billboard
     {
+        static Mod mod;
+
+        static bool forceNoNudity;
+
+        static Dictionary<string, List<Texture2D>> textureCache = new Dictionary<string, List<Texture2D>>();
+
         public float SecondsPerFrame = 0.2f;     // How much time between frames
 
         public float DelayMin = 0; // Minimum delay before anim runs
@@ -57,6 +65,77 @@ namespace AnimatedPeople
 
         bool firstUpdate = true;
         bool aligned = false;
+
+        [Invoke(StateManager.StateTypes.Start, 0)]
+        public static void Init(InitParams initParams)
+        {
+            mod = initParams.Mod;
+
+            mod.LoadSettingsCallback = LoadSettings;
+            mod.LoadSettings();
+            mod.IsReady = true;
+        }
+
+        static void LoadSettings(ModSettings modSettings, ModSettingsChange change)
+        {
+            forceNoNudity = modSettings.GetBool("Compatibility", "ForceNoNudity");
+        }
+
+        static bool HasNoNudity()
+        {
+            Mod noNudity = ModManager.Instance.GetMod("No nudity");
+            return noNudity != null && noNudity.Enabled;
+        }
+
+        string GetSettingPrefix(int archive, int record)
+        {
+            if (!forceNoNudity && !HasNoNudity())
+                return "";
+
+            if(archive == 175)
+            {
+                if (record == 0)
+                    return ".NN";
+            }
+            else if(archive == 176)
+            {
+                if (record == 2
+                    || record == 3)
+                    return ".NN";
+            }
+            else if(archive == 179)
+            {
+                if (record == 0
+                    || record == 1
+                    || record == 3)
+                    return ".NN";
+            }
+            else if(archive == 181)
+            {
+                if (record == 6)
+                    return ".NN";
+            }
+            else if(archive == 182)
+            {
+                if (record == 32
+                    || record == 34
+                    || record == 41
+                    || record == 48)
+                    return ".NN";
+            }
+            else if(archive == 184)
+            {
+                if (record == 6
+                    || record == 11
+                    || record == 12
+                    || record == 13
+                    || record == 14
+                    || record == 31)
+                    return ".NN";
+            }
+
+            return "";
+        }
 
         void Start()
         {
@@ -218,11 +297,21 @@ namespace AnimatedPeople
             // Get references
             meshRenderer = GetComponent<MeshRenderer>();
 
+            string prefix = GetSettingPrefix(archive, record);
+
             Vector2 size;
             Vector2 scale;
             Mesh mesh = null;
             Material material = null;
-            if (material = TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale))
+            if(!string.IsNullOrEmpty(prefix))
+            {
+                material = GetCustomBillboardMaterial(archive, record, prefix, ref summary, out scale);
+                mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
+                size *= scale;
+                summary.AtlasedMaterial = false;
+                summary.AnimatedMaterial = summary.ImportedTextures.FrameCount > 1;
+            }
+            else if (material = TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale))
             {
                 mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
                 size *= scale;
@@ -445,6 +534,45 @@ namespace AnimatedPeople
 
             // General billboard shadows if enabled
             meshRenderer.shadowCastingMode = (DaggerfallUnity.Settings.GeneralBillboardShadows && !isLightArchive) ? ShadowCastingMode.TwoSided : ShadowCastingMode.Off;
+
+            return material;
+        }
+
+        static Material GetCustomBillboardMaterial(int archive, int record, string prefix, ref BillboardSummary summary, out Vector2 scale)
+        {
+            scale = Vector2.one;
+
+            string firstFrameName = $"{archive}{prefix}_{record}-0";
+
+            if(!textureCache.TryGetValue(firstFrameName, out List<Texture2D> albedo))
+            {
+                albedo = new List<Texture2D>();
+
+                string frameName = firstFrameName;
+                int frame = 0;
+                while(ModManager.Instance.TryGetAsset(frameName, clone: false, out Texture2D frameAsset))
+                {
+                    albedo.Add(frameAsset);
+                    frameName = $"{archive}{prefix}_{record}-{++frame}";
+                }
+
+                if (frame == 0)
+                    return null;
+
+                textureCache.Add(firstFrameName, albedo);
+            }
+
+            summary.ImportedTextures.HasImportedTextures = true;
+            summary.ImportedTextures.Albedo = albedo;
+            summary.ImportedTextures.FrameCount = albedo.Count;
+            
+
+            // Make material
+            Material material = MaterialReader.CreateBillboardMaterial();
+            summary.Rect = new Rect(0, 0, 1, 1);
+
+            // Set textures on material
+            material.SetTexture(Uniforms.MainTex, albedo[0]);
 
             return material;
         }
