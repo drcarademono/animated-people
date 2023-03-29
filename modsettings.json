@@ -1,0 +1,20 @@
+{
+    "Version": null,
+    "Sections": [
+        {
+            "Name": "Compatibility",
+            "Description": "Compatibility settings with other mods",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Value": false,
+                    "Name": "ForceNoNudity",
+                    "Description": "Forces Nine's No Nudity sprites even if the mod is not installed",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                }
+            ],
+            "$version": "v1"
+        }
+    ]
+}
