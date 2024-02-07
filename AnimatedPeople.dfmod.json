@@ -1,9 +1,9 @@
 {
     "ModTitle": "Vanilla Enhanced - Animated People",
-    "ModVersion": "3.2.1",
+    "ModVersion": "3.2.3",
     "ModAuthor": "carademono & kaboissonneault",
-    "ContactInfo": "forums.dfworkshop.net",
-    "DFUnity_Version": "0.13.5",
+    "ContactInfo": "Lysandus' Tomb Discord server",
+    "DFUnity_Version": "1.0.0",
     "ModDescription": "This mod animates all unanimated NPC flats, bringing life to the formerly static people of the Iliac Bay.",
     "GUID": "02f15f60-4f90-42eb-b36b-4c238cb3be27",
     "Files": [
@@ -1428,6 +1428,21 @@
         "Assets/Game/Mods/animated-people/Textures/NN/175.NN_0-0.png",
         "Assets/Game/Mods/animated-people/Textures/NN/179.NN_3-9.png",
         "Assets/Game/Mods/animated-people/Textures/NN/182.NN_41-6.png",
-        "Assets/Game/Mods/animated-people/modsettings.json"
+        "Assets/Game/Mods/animated-people/modsettings.json",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_40-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_23-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_22-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_24-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_42-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_41-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_42-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_24-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_39-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_40-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_23-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_22-0.xml",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_41-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_45-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Resource Packs/1200_39-0.png"
     ]
 }
