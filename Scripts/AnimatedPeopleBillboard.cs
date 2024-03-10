@@ -65,6 +65,7 @@ namespace AnimatedPeople
         float frameBuffer = 0.0f;
 
         bool firstUpdate = true;
+        bool materialSet = false;
         bool aligned = false;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -138,7 +139,7 @@ namespace AnimatedPeople
             return "";
         }
 
-        void Start()
+        void Awake()
         {
             if (Application.isPlaying)
             {                
@@ -154,7 +155,16 @@ namespace AnimatedPeople
                     // Just disable mesh renderer as actual object can be part of action chain
                     // Example is the treasury in Daggerfall castle, some action records flow through the quest item marker
                     meshRenderer.enabled = false;
-                }
+                }                
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (!materialSet)
+            {
+                SetupAnimatedPeople();
+                materialSet = true;
             }
         }
 
@@ -181,8 +191,7 @@ namespace AnimatedPeople
             }
 
             SetMaterial(Archive, Record);
-            AlignToBase();
-
+            
             int framecCount = GetFrameCount();
             if(framecCount == 0)
             {
@@ -209,7 +218,7 @@ namespace AnimatedPeople
         {
             if(firstUpdate)
             {
-                SetupAnimatedPeople();
+                AlignToBase();
                 firstUpdate = false;
             }
 
