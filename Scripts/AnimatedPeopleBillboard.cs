@@ -19,6 +19,7 @@ using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AnimatedPeople
 {
@@ -64,6 +65,7 @@ namespace AnimatedPeople
         float frameBuffer = 0.0f;
 
         bool firstUpdate = true;
+        bool materialSet = false;
         bool aligned = false;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -137,7 +139,7 @@ namespace AnimatedPeople
             return "";
         }
 
-        void Start()
+        void Awake()
         {
             if (Application.isPlaying)
             {                
@@ -153,7 +155,16 @@ namespace AnimatedPeople
                     // Just disable mesh renderer as actual object can be part of action chain
                     // Example is the treasury in Daggerfall castle, some action records flow through the quest item marker
                     meshRenderer.enabled = false;
-                }
+                }                
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (!materialSet)
+            {
+                SetupAnimatedPeople();
+                materialSet = true;
             }
         }
 
@@ -164,10 +175,31 @@ namespace AnimatedPeople
 
         void SetupAnimatedPeople()
         {
-            SetMaterial(Archive, Record);
-            AlignToBase();
+            if (meshFilter == null)
+            {
+                Debug.LogWarning($"[VE-AP] Mesh filter null on record '{Archive}_{Record}'");
+            }
 
-            summary.CurrentFrame = GetFrameCount() - 1;
+            if (meshRenderer == null)
+            {
+                Debug.LogWarning($"[VE-AP] Mesh renderer null on record '{Archive}_{Record}'");
+            }
+
+            if (mainCamera == null)
+            {
+                Debug.LogWarning($"[VE-AP] Main camera null on record '{Archive}_{Record}'");
+            }
+
+            SetMaterial(Archive, Record);
+            
+            int framecCount = GetFrameCount();
+            if(framecCount == 0)
+            {
+                Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
+                return;
+            }
+
+            summary.CurrentFrame = framecCount - 1;
 
             SetCurrentFrame();
 
@@ -186,7 +218,7 @@ namespace AnimatedPeople
         {
             if(firstUpdate)
             {
-                SetupAnimatedPeople();
+                AlignToBase();
                 firstUpdate = false;
             }
 
@@ -271,8 +303,15 @@ namespace AnimatedPeople
             // Custom textures
             else
             {
+                var albedo = summary.ImportedTextures.Albedo[summary.CurrentFrame];
+                if(albedo == null)
+                {
+                    Debug.LogError("[VE-AP] Imported textures albedo went null");
+                    return;
+                }
+
                 // Set imported textures for current frame
-                meshRenderer.material.SetTexture("_MainTex", summary.ImportedTextures.Albedo[summary.CurrentFrame]);
+                meshRenderer.material.SetTexture("_MainTex", albedo);
                 if (summary.ImportedTextures.IsEmissive)
                     meshRenderer.material.SetTexture("_EmissionMap", summary.ImportedTextures.Emission[summary.CurrentFrame]);
             }
@@ -378,7 +417,6 @@ namespace AnimatedPeople
                 summary.FlatType = FlatTypes.NPC;
 
             // Assign mesh and material
-            MeshFilter meshFilter = GetComponent<MeshFilter>();
             Mesh oldMesh = meshFilter.sharedMesh;
             if (mesh)
             {
@@ -515,7 +553,6 @@ namespace AnimatedPeople
             summary.Size = size;
 
             // Assign mesh and material
-            MeshFilter meshFilter = GetComponent<MeshFilter>();
             Mesh oldMesh = meshFilter.sharedMesh;
             if (mesh)
             {
@@ -538,6 +575,11 @@ namespace AnimatedPeople
             return material;
         }
 
+        static bool IsBadTextures(List<Texture2D> textures)
+        {
+            return textures == null || textures.Any(texture => texture == null);
+        }
+
         static Material GetCustomBillboardMaterial(int archive, int record, string prefix, ref BillboardSummary summary, out Vector2 scale)
         {
             scale = Vector2.one;
@@ -557,9 +599,34 @@ namespace AnimatedPeople
                 }
 
                 if (frame == 0)
+                {
+                    Debug.LogError($"[VE-AP] Could not load frames for '{firstFrameName}'");
                     return null;
+                }
 
                 textureCache.Add(firstFrameName, albedo);
+            }
+            else if(IsBadTextures(albedo))
+            {
+                // Reload textures and replace
+
+                albedo = new List<Texture2D>();
+
+                string frameName = firstFrameName;
+                int frame = 0;
+                while (ModManager.Instance.TryGetAsset(frameName, clone: false, out Texture2D frameAsset))
+                {
+                    albedo.Add(frameAsset);
+                    frameName = $"{archive}{prefix}_{record}-{++frame}";
+                }
+
+                if (frame == 0)
+                {
+                    Debug.LogError($"[VE-AP] Could not load frames for '{firstFrameName}'");
+                    return null;
+                }
+
+                textureCache[firstFrameName] = albedo;
             }
 
             summary.ImportedTextures.HasImportedTextures = true;
