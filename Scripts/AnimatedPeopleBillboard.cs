@@ -41,7 +41,7 @@ namespace AnimatedPeople
         public float DelayMax = 0; // Maximun delay before anim runs
         public int RepeatMin = 0; // Minimum animation loop before adding new delay
         public int RepeatMax = 0; // Maximum animation loop before adding new delay
-        
+
         public int Archive = 182;
         public int Record = 0;
 
@@ -49,7 +49,10 @@ namespace AnimatedPeople
         public override int FramesPerSecond
         {
             get { return Mathf.RoundToInt(1 / SecondsPerFrame); }
-            set { SecondsPerFrame = 1 / value; }
+            set
+            {
+                // Don't let mods change our FramesPerSecond
+            }
         }
 
         public override bool OneShot { get; set; }
@@ -142,7 +145,7 @@ namespace AnimatedPeople
         void Awake()
         {
             if (Application.isPlaying)
-            {                
+            {
                 // Get component references
                 mainCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
                 meshFilter = GetComponent<MeshFilter>();
@@ -155,7 +158,7 @@ namespace AnimatedPeople
                     // Just disable mesh renderer as actual object can be part of action chain
                     // Example is the treasury in Daggerfall castle, some action records flow through the quest item marker
                     meshRenderer.enabled = false;
-                }                
+                }
             }
         }
 
@@ -191,15 +194,15 @@ namespace AnimatedPeople
             }
 
             SetMaterial(Archive, Record);
-            
-            int framecCount = GetFrameCount();
-            if(framecCount == 0)
+
+            int frameCount = GetFrameCount();
+            if(frameCount == 0)
             {
                 Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
                 return;
             }
 
-            summary.CurrentFrame = framecCount - 1;
+            summary.CurrentFrame = frameCount - 1;
 
             SetCurrentFrame();
 
@@ -218,6 +221,8 @@ namespace AnimatedPeople
         {
             if(firstUpdate)
             {
+                summary.Archive = Archive;
+                summary.Record = Record;
                 AlignToBase();
                 firstUpdate = false;
             }
@@ -280,7 +285,7 @@ namespace AnimatedPeople
         int GetFrameCount()
         {
             return !summary.ImportedTextures.HasImportedTextures
-                    ? summary.AtlasIndices[summary.Record].frameCount
+                    ? summary.AtlasIndices[Record].frameCount
                     : summary.ImportedTextures.FrameCount;
         }
 
@@ -289,7 +294,7 @@ namespace AnimatedPeople
             // Original Daggerfall textures
             if (!summary.ImportedTextures.HasImportedTextures)
             {
-                int index = summary.AtlasIndices[summary.Record].startIndex + summary.CurrentFrame;
+                int index = summary.AtlasIndices[Record].startIndex + summary.CurrentFrame;
                 Rect rect = summary.AtlasRects[index];
 
                 // Update UVs on mesh
@@ -328,6 +333,13 @@ namespace AnimatedPeople
         /// <returns>Material.</returns>
         public override Material SetMaterial(int archive, int record, int frame = 0)
         {
+            // AP is not setup to handle mods that change our billboard to another
+            // archive-record. Ignore their calls to SetMaterial
+            if (archive != Archive || record != Record)
+            {
+                return null;
+            }
+
             // Get DaggerfallUnity
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
             if (!dfUnity.IsReady)
@@ -404,16 +416,17 @@ namespace AnimatedPeople
 
             // Set summary
             summary.FlatType = MaterialReader.GetFlatType(archive);
-            summary.Archive = archive;
-            summary.Record = record;
             summary.Size = size;
+
+            // Don't set summary archive and record yet
+            // We don't want mods like R&R acting on our billboard
 
             // Set editor flat types
             if (summary.FlatType == FlatTypes.Editor)
-                summary.EditorFlatType = MaterialReader.GetEditorFlatType(summary.Record);
+                summary.EditorFlatType = MaterialReader.GetEditorFlatType(record);
 
             // Set NPC flat type based on archive
-            if (RDBLayout.IsNPCFlat(summary.Archive))
+            if (RDBLayout.IsNPCFlat(archive))
                 summary.FlatType = FlatTypes.NPC;
 
             // Assign mesh and material
@@ -448,7 +461,7 @@ namespace AnimatedPeople
 
             return material;
         }
-                
+
         /// <summary>
         /// Aligns billboard to centre of base, rather than exact centre.
         /// Must have already set material using SetMaterial() for billboard dimensions to be known.
@@ -457,7 +470,7 @@ namespace AnimatedPeople
         {
             if (aligned)
                 return;
-                        
+
             // MeshReplace.AlignToBase lowers custom billboard prefabs in dungeons for some reason
             // Just put them back up
             if (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon)
@@ -632,7 +645,7 @@ namespace AnimatedPeople
             summary.ImportedTextures.HasImportedTextures = true;
             summary.ImportedTextures.Albedo = albedo;
             summary.ImportedTextures.FrameCount = albedo.Count;
-            
+
 
             // Make material
             Material material = MaterialReader.CreateBillboardMaterial();
