@@ -32,6 +32,7 @@ namespace AnimatedPeople
         static Mod mod;
 
         static bool forceNoNudity;
+        static bool verboseLogs;
 
         static Dictionary<string, List<Texture2D>> textureCache = new Dictionary<string, List<Texture2D>>();
 
@@ -83,6 +84,7 @@ namespace AnimatedPeople
 
         static void LoadSettings(ModSettings modSettings, ModSettingsChange change)
         {
+            verboseLogs = modSettings.GetBool("Core", "VerboseLog");
             forceNoNudity = modSettings.GetBool("Compatibility", "ForceNoNudity");
         }
 
@@ -144,6 +146,8 @@ namespace AnimatedPeople
 
         void Awake()
         {
+            if(verboseLogs) Debug.Log($"[VE-AP] Awake on {Archive}-{Record}");
+
             if (Application.isPlaying)
             {
                 // Get component references
@@ -164,6 +168,8 @@ namespace AnimatedPeople
 
         private void OnEnable()
         {
+            if(verboseLogs) Debug.Log($"[VE-AP] OnEnable on {Archive}-{Record}");
+
             if (!materialSet)
             {
                 SetupAnimatedPeople();
@@ -173,11 +179,15 @@ namespace AnimatedPeople
 
         private void OnDisable()
         {
+            if(verboseLogs) Debug.Log($"[VE-AP] OnDisable on {Archive}-{Record}");
+
             firstUpdate = true;
         }
 
         void SetupAnimatedPeople()
         {
+            if(verboseLogs) Debug.Log($"[VE-AP] SetupAnimatedPeople on {Archive}-{Record}");
+
             if (meshFilter == null)
             {
                 Debug.LogWarning($"[VE-AP] Mesh filter null on record '{Archive}_{Record}'");
@@ -221,6 +231,8 @@ namespace AnimatedPeople
         {
             if(firstUpdate)
             {
+                if(verboseLogs) Debug.Log($"[VE-AP] First Update on {Archive}-{Record}");
+
                 summary.Archive = Archive;
                 summary.Record = Record;
                 AlignToBase();
@@ -333,6 +345,8 @@ namespace AnimatedPeople
         /// <returns>Material.</returns>
         public override Material SetMaterial(int archive, int record, int frame = 0)
         {
+            if(verboseLogs) Debug.Log($"[VE-AP] SetMaterial on {Archive}-{Record} with archive={archive} and record={record}");
+
             // AP is not setup to handle mods that change our billboard to another
             // archive-record. Ignore their calls to SetMaterial
             if (archive != Archive || record != Record)
@@ -470,6 +484,8 @@ namespace AnimatedPeople
         {
             if (aligned)
                 return;
+
+            if(verboseLogs) Debug.Log($"[VE-AP] AlignToBase on {Archive}-{Record}");
 
             // MeshReplace.AlignToBase lowers custom billboard prefabs in dungeons for some reason
             // Just put them back up

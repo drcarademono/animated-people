@@ -2,6 +2,21 @@
     "Version": null,
     "Sections": [
         {
+            "Name": "Core",
+            "Description": "Main settings",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Value": false,
+                    "Name": "VerboseLog",
+                    "Description": "Verbose (ie: spam) logs. To be used when debugging an issue",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
             "Name": "Compatibility",
             "Description": "Compatibility settings with other mods",
             "IsAdvanced": false,
