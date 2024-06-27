@@ -5,21 +5,20 @@
 
 using UnityEngine;
 using UnityEngine.Rendering;
-
 using System;
 using System.Collections;
-
 using DaggerfallConnect;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
-
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using System.Collections.Generic;
 using System.Linq;
+using FullSerializer;
+using System.IO;
 
 namespace AnimatedPeople
 {
@@ -33,6 +32,11 @@ namespace AnimatedPeople
 
         static bool forceNoNudity;
         static bool verboseLogs;
+
+        public bool HasCustomPortrait { get; set; }
+        public int CustomPortraitRecord { get; set; }
+
+        private Dictionary<uint, List<FlatReplacement>> flatReplacements;
 
         static Dictionary<string, List<Texture2D>> textureCache = new Dictionary<string, List<Texture2D>>();
 
@@ -175,6 +179,158 @@ namespace AnimatedPeople
                 SetupAnimatedPeople();
                 materialSet = true;
             }
+        }
+
+        void Start()
+        {
+            Debug.Log("[VE-AP] Start method called.");
+
+            // Initialize flatReplacements
+            flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
+            LoadFlatReplacements();
+
+            // Check and update archive/record values
+            CheckAndUpdateArchiveRecord();
+
+            // Handle Talk Window change
+            DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+        }
+
+        void LoadFlatReplacements()
+        {
+            Debug.Log("[VE-AP] Loading flat replacements.");
+
+            const string replacementDirectory = "FlatReplacements";
+            var replacementPath = Path.Combine(Application.streamingAssetsPath, replacementDirectory);
+            if (!Directory.Exists(replacementPath))
+            {
+                Debug.LogWarning($"[VE-AP] Replacement directory not found: {replacementPath}");
+                return; // Don't do anything without this folder.
+            }
+
+            var replacementFiles = Directory.GetFiles(replacementPath);
+            var serializer = new fsSerializer();
+            var textureCache = new Dictionary<string, Texture2D>();
+            List<FlatReplacementRecord> replacementRecords;
+
+            foreach (var replacementFile in replacementFiles)
+            {
+                Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
+                using (var streamReader = new StreamReader(replacementFile))
+                {
+                    var fsResult = fsJsonParser.Parse(streamReader.ReadToEnd(), out var fsData); // Parse whole file.
+                    if (!fsResult.Equals(fsResult.Success))
+                    {
+                        Debug.LogError($"[VE-AP] Failed to parse replacement file: {replacementFile}");
+                        continue;
+                    }
+
+                    replacementRecords = null;
+                    serializer.TryDeserialize(fsData, ref replacementRecords).AssertSuccess();
+                }
+
+                // Load flat graphics
+                foreach (var record in replacementRecords)
+                {
+                    var key = ((uint)record.TextureArchive << 16) + (uint)record.TextureRecord; // Pack archive and record into single unsigned 32-bit integer
+                    if (!flatReplacements.ContainsKey(key))
+                        flatReplacements[key] = new List<FlatReplacement>();
+
+                    var isValidVanillaFlat = record.ReplaceTextureArchive > -1 && record.ReplaceTextureRecord > -1;
+
+                    if (isValidVanillaFlat)
+                    {
+                        Debug.Log($"[VE-AP] Adding valid vanilla flat replacement: {record.TextureArchive}-{record.TextureRecord}");
+                        flatReplacements[key].Add(new FlatReplacement() { Record = record });
+                    }
+                }
+            }
+        }
+
+        void CheckAndUpdateArchiveRecord()
+        {
+            Debug.Log("[VE-AP] Checking and updating archive/record.");
+
+            var key = ((uint)Archive << 16) + (uint)Record;
+            if (!flatReplacements.ContainsKey(key))
+            {
+                Debug.Log($"[VE-AP] No replacement available for archive {Archive}, record {Record}.");
+                return; // No replacement available for this archive/record.
+            }
+
+            var candidates = new List<byte>();
+            var playerGps = GameManager.Instance.PlayerGPS;
+            var buildingData = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData;
+
+            for (var i = 0; i < flatReplacements[key].Count; i++)
+            {
+                var replacementRecord = flatReplacements[key][i].Record;
+                var regionFound = replacementRecord.Regions[0] == -1 || replacementRecord.Regions.Contains(playerGps.CurrentRegionIndex);
+
+                if (!regionFound)
+                    continue;
+
+                if ((replacementRecord.FactionId != -1 && replacementRecord.FactionId != buildingData.factionID) ||
+                    (replacementRecord.BuildingType != -1 && replacementRecord.BuildingType != (int)buildingData.buildingType) ||
+                    (buildingData.quality < replacementRecord.QualityMin || buildingData.quality > replacementRecord.QualityMax))
+                    continue;
+
+                candidates.Add((byte)i);
+            }
+
+            if (candidates.Count == 0)
+            {
+                Debug.Log("[VE-AP] No valid candidates found for replacement.");
+                return; // No valid candidates found.
+            }
+
+            var chosenIndex = candidates.Count > 1 ? new System.Random().Next(candidates.Count) : 0;
+            var chosenReplacement = flatReplacements[key][candidates[chosenIndex]];
+
+            Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}.");
+
+            Archive = chosenReplacement.Record.ReplaceTextureArchive;
+            Record = chosenReplacement.Record.ReplaceTextureRecord;
+            SetMaterial(Archive, Record);
+        }
+
+        private void OnWindowChange(object sender, EventArgs e)
+        {
+            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC)
+                return;
+
+            var replacementBillboard = TalkManager.Instance.StaticNPC.gameObject.GetComponent<AnimatedPeopleBillboard>();
+            var facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+            GameManager.Instance.PlayerEntity.FactionData.GetFactionData(TalkManager.Instance.StaticNPC.Data.factionID, out var factionData);
+            if (factionData.type == 4 && factionData.face <= 60)
+                facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.SpecialFaces;
+
+            if (replacementBillboard && replacementBillboard.HasCustomPortrait)
+            {
+                Debug.Log($"[VE-AP] Setting custom portrait: {replacementBillboard.CustomPortraitRecord}");
+                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, replacementBillboard.CustomPortraitRecord);
+            }
+        }
+
+        private class FlatReplacementRecord
+        {
+            public int[] Regions;
+            public int FactionId;
+            public int BuildingType;
+            public int QualityMin;
+            public int QualityMax;
+            public int TextureArchive;
+            public int TextureRecord;
+            public int ReplaceTextureArchive;
+            public int ReplaceTextureRecord;
+            public string FlatTextureName;
+            public bool UseExactDimensions;
+            public int FlatPortrait;
+        }
+
+        private class FlatReplacement
+        {
+            public FlatReplacementRecord Record;
         }
 
         private void OnDisable()
