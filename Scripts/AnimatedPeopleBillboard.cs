@@ -291,7 +291,16 @@ namespace AnimatedPeople
 
             Archive = chosenReplacement.Record.ReplaceTextureArchive;
             Record = chosenReplacement.Record.ReplaceTextureRecord;
+
+            // Update material and mesh
             SetMaterial(Archive, Record);
+
+            // Set custom portrait if applicable
+            if (chosenReplacement.Record.FlatPortrait > -1)
+            {
+                HasCustomPortrait = true;
+                CustomPortraitRecord = chosenReplacement.Record.FlatPortrait;
+            }
         }
 
         private void OnWindowChange(object sender, EventArgs e)
@@ -524,17 +533,9 @@ namespace AnimatedPeople
             Vector2 scale;
             Mesh mesh = null;
             Material material = null;
-            if(!string.IsNullOrEmpty(prefix))
+            if(!string.IsNullOrEmpty(prefix) || archive > 511)
             {
                 material = GetCustomBillboardMaterial(archive, record, prefix, ref summary, out scale);
-                mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
-                size *= scale;
-                summary.AtlasedMaterial = false;
-                summary.AnimatedMaterial = summary.ImportedTextures.FrameCount > 1;
-            }
-            else if(archive > 511)
-            {
-                material = GetCustomBillboardMaterialFR(archive, record, ref summary, out scale);
                 mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
                 size *= scale;
                 summary.AtlasedMaterial = false;
@@ -836,93 +837,5 @@ namespace AnimatedPeople
 
             return material;
         }
-
-static Material GetCustomBillboardMaterialFR(int archive, int record, ref BillboardSummary summary, out Vector2 scale)
-{
-    scale = Vector2.one;
-
-    string firstFrameName = $"{archive}_{record}-0";
-
-    Debug.Log($"[VE-AP] Attempting to load custom billboard material: {firstFrameName}");
-
-    if (!textureCache.TryGetValue(firstFrameName, out List<Texture2D> albedo))
-    {
-        albedo = new List<Texture2D>();
-
-        int frame = 0;
-        while (true)
-        {
-            string frameName = $"{archive}_{record}-{frame}";
-            Debug.Log($"[VE-AP] Attempting to load texture frame: {frameName}");
-            if (TextureReplacement.TryImportTexture(archive, record, frame, out Texture2D frameAsset))
-            {
-                Debug.Log($"[VE-AP] Loaded texture frame: {frameName}");
-                albedo.Add(frameAsset);
-                frame++;
-            }
-            else
-            {
-                Debug.Log($"[VE-AP] Could not load texture frame: {frameName}");
-                break;
-            }
-        }
-
-        if (frame == 0)
-        {
-            Debug.LogError($"[VE-AP] Could not load frames for '{firstFrameName}'");
-            return null;
-        }
-
-        textureCache.Add(firstFrameName, albedo);
-    }
-    else if (IsBadTextures(albedo))
-    {
-        // Reload textures and replace
-        Debug.Log($"[VE-AP] Reloading bad textures for {firstFrameName}");
-
-        albedo = new List<Texture2D>();
-
-        int frame = 0;
-        while (true)
-        {
-            string frameName = $"{archive}_{record}-{frame}";
-            Debug.Log($"[VE-AP] Attempting to load texture frame: {frameName}");
-            if (TextureReplacement.TryImportTexture(archive, record, frame, out Texture2D frameAsset))
-            {
-                Debug.Log($"[VE-AP] Loaded texture frame: {frameName}");
-                albedo.Add(frameAsset);
-                frame++;
-            }
-            else
-            {
-                Debug.Log($"[VE-AP] Could not load texture frame: {frameName}");
-                break;
-            }
-        }
-
-        if (frame == 0)
-        {
-            Debug.LogError($"[VE-AP] Could not load frames for '{firstFrameName}'");
-            return null;
-        }
-
-        textureCache[firstFrameName] = albedo;
-    }
-
-    summary.ImportedTextures.HasImportedTextures = true;
-    summary.ImportedTextures.Albedo = albedo;
-    summary.ImportedTextures.FrameCount = albedo.Count;
-
-    // Make material
-    Material material = MaterialReader.CreateBillboardMaterial();
-    summary.Rect = new Rect(0, 0, 1, 1);
-
-    // Set textures on material
-    material.SetTexture(Uniforms.MainTex, albedo[0]);
-
-    return material;
-}
-
-
     }
 }
