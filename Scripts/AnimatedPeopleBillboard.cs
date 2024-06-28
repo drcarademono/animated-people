@@ -199,6 +199,16 @@ namespace AnimatedPeople
 
             // Load settings from CSV and update them
             LoadSettingsFromCSV();
+
+            if (DelayMax != 0.0f)
+            {
+                animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
+            }
+
+            if (RepeatMax != 0)
+            {
+                repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
+            }
         }
 
 void LoadSettingsFromCSV()
@@ -435,16 +445,6 @@ void LoadSettingsFromCSV()
             summary.CurrentFrame = frameCount - 1;
 
             SetCurrentFrame();
-
-            if (DelayMax != 0.0f)
-            {
-                animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
-            }
-
-            if (RepeatMax != 0)
-            {
-                repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
-            }
         }
 
         void Update()
