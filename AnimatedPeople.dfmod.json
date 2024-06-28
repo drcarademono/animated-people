@@ -1803,6 +1803,7 @@
         "Assets/Game/Mods/animated-people/Textures/182_59-1_Emission.png",
         "Assets/Game/Mods/animated-people/Textures/NN/182.NN_41-8_Emission.png",
         "Assets/Game/Mods/animated-people/Textures/175_5-4_Emission.png",
-        "Assets/Game/Mods/animated-people/Textures/184_23-2.png"
+        "Assets/Game/Mods/animated-people/Textures/184_23-2.png",
+        "Assets/Game/Mods/animated-people/AnimatedPeople.csv"
     ]
 }

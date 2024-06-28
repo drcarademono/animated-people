@@ -196,7 +196,60 @@ namespace AnimatedPeople
 
             // Handle Talk Window change
             DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+
+            // Load settings from CSV and update them
+            LoadSettingsFromCSV();
         }
+
+void LoadSettingsFromCSV()
+{
+    // Set default values
+    SecondsPerFrame = 0.1f;
+    DelayMin = 0;
+    DelayMax = 0;
+    RepeatMin = 0;
+    RepeatMax = 0;
+
+    string filePath = "AnimatedPeople.csv"; // Path to your CSV file
+    if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
+    {
+        using (StringReader reader = new StringReader(csvAsset.text))
+        {
+            string line = reader.ReadLine(); // Read header line
+            while ((line = reader.ReadLine()) != null)
+            {
+                string[] values = line.Split(',');
+
+                // Assuming columns are Archive, Record, SecondsPerFrame, DelayMin, DelayMax, RepeatMin, RepeatMax
+                int archive = int.Parse(values[0]);
+                int record = int.Parse(values[1]);
+
+                // Check if the current archive and record match the row's archive and record
+                if (archive == this.Archive && record == this.Record)
+                {
+                    // Update the settings
+                    SecondsPerFrame = float.Parse(values[2]);
+                    DelayMin = float.Parse(values[3]);
+                    DelayMax = float.Parse(values[4]);
+                    RepeatMin = int.Parse(values[5]);
+                    RepeatMax = int.Parse(values[6]);
+
+                    if (verboseLogs)
+                    {
+                        Debug.Log($"[VE-AP] Loaded settings from CSV for {Archive}-{Record}: SecondsPerFrame={SecondsPerFrame}, DelayMin={DelayMin}, DelayMax={DelayMax}, RepeatMin={RepeatMin}, RepeatMax={RepeatMax}");
+                    }
+                    break; // Exit loop once settings are found and updated
+                }
+            }
+        }
+    }
+    else
+    {
+        Debug.LogError("[VE-AP] CSV asset not found.");
+    }
+}
+
+
 
         void LoadFlatReplacements()
         {
