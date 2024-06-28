@@ -185,7 +185,7 @@ namespace AnimatedPeople
 
         void Start()
         {
-            Debug.Log("[VE-AP] Start method called.");
+            if(verboseLogs) Debug.Log("[VE-AP] Start method called.");
 
             // Initialize flatReplacements
             flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
@@ -214,7 +214,7 @@ namespace AnimatedPeople
 void LoadSettingsFromCSV()
 {
     // Set default values
-    SecondsPerFrame = 0.1f;
+    SecondsPerFrame = 0.2f;
     DelayMin = 0;
     DelayMax = 0;
     RepeatMin = 0;
@@ -263,7 +263,7 @@ void LoadSettingsFromCSV()
 
         void LoadFlatReplacements()
         {
-            Debug.Log("[VE-AP] Loading flat replacements.");
+            if(verboseLogs) Debug.Log("[VE-AP] Loading flat replacements.");
 
             const string replacementDirectory = "FlatReplacements";
             var replacementPath = Path.Combine(Application.streamingAssetsPath, replacementDirectory);
@@ -280,13 +280,13 @@ void LoadSettingsFromCSV()
 
             foreach (var replacementFile in replacementFiles)
             {
-                Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
+                if(verboseLogs) Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
                 using (var streamReader = new StreamReader(replacementFile))
                 {
                     var fsResult = fsJsonParser.Parse(streamReader.ReadToEnd(), out var fsData); // Parse whole file.
                     if (!fsResult.Equals(fsResult.Success))
                     {
-                        Debug.LogError($"[VE-AP] Failed to parse replacement file: {replacementFile}");
+                        if(verboseLogs) Debug.LogError($"[VE-AP] Failed to parse replacement file: {replacementFile}");
                         continue;
                     }
 
@@ -305,7 +305,7 @@ void LoadSettingsFromCSV()
 
                     if (isValidVanillaFlat)
                     {
-                        Debug.Log($"[VE-AP] Adding valid vanilla flat replacement: {record.TextureArchive}-{record.TextureRecord}");
+                        if(verboseLogs) Debug.Log($"[VE-AP] Adding valid vanilla flat replacement: {record.TextureArchive}-{record.TextureRecord}");
                         flatReplacements[key].Add(new FlatReplacement() { Record = record });
                     }
                 }
@@ -314,12 +314,12 @@ void LoadSettingsFromCSV()
 
         void CheckAndUpdateArchiveRecord()
         {
-            Debug.Log("[VE-AP] Checking and updating archive/record.");
+            if(verboseLogs) Debug.Log("[VE-AP] Checking and updating archive/record.");
 
             var key = ((uint)Archive << 16) + (uint)Record;
             if (!flatReplacements.ContainsKey(key))
             {
-                Debug.Log($"[VE-AP] No replacement available for archive {Archive}, record {Record}.");
+                if(verboseLogs) Debug.Log($"[VE-AP] No replacement available for archive {Archive}, record {Record}.");
                 return; // No replacement available for this archive/record.
             }
 
@@ -345,14 +345,14 @@ void LoadSettingsFromCSV()
 
             if (candidates.Count == 0)
             {
-                Debug.Log("[VE-AP] No valid candidates found for replacement.");
+                if(verboseLogs) Debug.Log("[VE-AP] No valid candidates found for replacement.");
                 return; // No valid candidates found.
             }
 
             var chosenIndex = candidates.Count > 1 ? new System.Random().Next(candidates.Count) : 0;
             var chosenReplacement = flatReplacements[key][candidates[chosenIndex]];
 
-            Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}.");
+            if(verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}.");
 
             Archive = chosenReplacement.Record.ReplaceTextureArchive;
             Record = chosenReplacement.Record.ReplaceTextureRecord;
@@ -381,7 +381,7 @@ void LoadSettingsFromCSV()
 
             if (replacementBillboard && replacementBillboard.HasCustomPortrait)
             {
-                Debug.Log($"[VE-AP] Setting custom portrait: {replacementBillboard.CustomPortraitRecord}");
+                if(verboseLogs) Debug.Log($"[VE-AP] Setting custom portrait: {replacementBillboard.CustomPortraitRecord}");
                 DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, replacementBillboard.CustomPortraitRecord);
             }
         }
@@ -438,7 +438,7 @@ void LoadSettingsFromCSV()
             int frameCount = GetFrameCount();
             if(frameCount == 0)
             {
-                Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
+                if(verboseLogs) Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
                 return;
             }
 
@@ -669,14 +669,14 @@ void LoadSettingsFromCSV()
             }
 
             // Debug logs for size and scale
-            Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+            if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
 
                 // Debug logs for size and scale
-                Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+                if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
 
                 if (xml != null)
                 {
-                    Debug.Log("VE-AP: Rescaling based on XML from GetCustomBillboardMaterial");
+                    if(verboseLogs) Debug.Log("VE-AP: Rescaling based on XML from GetCustomBillboardMaterial");
                     Transform transform = GetComponent<Transform>();
                     scale = xml.GetVector2("scaleX", "scaleY", Vector2.one);
                     transform.localScale = new Vector3(scale.x, scale.y, transform.localScale.z);
@@ -685,7 +685,7 @@ void LoadSettingsFromCSV()
                 }
                 else
                 {
-                    Debug.LogError($"VE-AP: XML data was not provided or found in GetCustomBillboardMaterial");
+                    if(verboseLogs) Debug.LogError($"VE-AP: XML data was not provided or found in GetCustomBillboardMaterial");
                 }
 
             // Set summary
@@ -732,7 +732,7 @@ void LoadSettingsFromCSV()
                 col.isTrigger = true;
             }
 
-            Debug.Log($"[VE-AP] Successfully set material for archive={archive}, record={record}, size={summary.Size}, scale={scale}");
+            if(verboseLogs) Debug.Log($"[VE-AP] Successfully set material for archive={archive}, record={record}, size={summary.Size}, scale={scale}");
             return material;
         }
 
@@ -923,12 +923,12 @@ void LoadSettingsFromCSV()
             summary.ImportedTextures.Albedo = albedo;
             summary.ImportedTextures.FrameCount = albedo.Count;
 
-            Debug.Log("VE-AP: Attempting to rescale based on XML");
+            if(verboseLogs) Debug.Log("VE-AP: Attempting to rescale based on XML");
             // Read XML configuration for scaling and UV
             Vector2 uv = Vector2.zero;
             if (XMLManager.TryReadXml(TextureReplacement.TexturesPath, xmlFileName, out xml))
             {
-                Debug.Log("VE-AP: Rescaling based on XML");
+                if(verboseLogs) Debug.Log("VE-AP: Rescaling based on XML");
                 scale = xml.GetVector2("scaleX", "scaleY", Vector2.one);
                 uv = xml.GetVector2("uvX", "uvY", uv);
             }
