@@ -50,6 +50,8 @@ namespace AnimatedPeople
         public int Archive = 182;
         public int Record = 0;
 
+    private XMLManager xml;
+
         #region Billboard
         public override int FramesPerSecond
         {
@@ -510,7 +512,7 @@ namespace AnimatedPeople
         /// <returns>Material.</returns>
         public override Material SetMaterial(int archive, int record, int frame = 0)
         {
-            if(verboseLogs) Debug.Log($"[VE-AP] SetMaterial on {Archive}-{Record} with archive={archive} and record={record}");
+            if (verboseLogs) Debug.Log($"[VE-AP] SetMaterial on {Archive}-{Record} with archive={archive} and record={record}");
 
             // AP is not setup to handle mods that change our billboard to another
             // archive-record. Ignore their calls to SetMaterial
@@ -525,24 +527,37 @@ namespace AnimatedPeople
                 return null;
 
             // Get references
+            meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
 
             string prefix = GetSettingPrefix(archive, record);
 
-            Vector2 size;
-            Vector2 scale;
+            Vector2 size = Vector2.zero;
+            Vector2 scale = Vector2.one;
             Mesh mesh = null;
             Material material = null;
-            if(!string.IsNullOrEmpty(prefix) || archive > 511)
+
+            if (!string.IsNullOrEmpty(prefix) || archive > 511)
             {
                 material = GetCustomBillboardMaterial(archive, record, prefix, ref summary, out scale);
+                if (material == null)
+                {
+                    Debug.LogError("[VE-AP] Failed to get custom billboard material.");
+                    return null;
+                }
                 mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
                 size *= scale;
                 summary.AtlasedMaterial = false;
                 summary.AnimatedMaterial = summary.ImportedTextures.FrameCount > 1;
             }
-            else if (material = TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale))
+            else if (TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale))
             {
+                material = TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale);
+                if (material == null)
+                {
+                    Debug.LogError("[VE-AP] Failed to get static billboard material.");
+                    return null;
+                }
                 mesh = dfUnity.MeshReader.GetBillboardMesh(summary.Rect, archive, record, out size);
                 size *= scale;
                 summary.AtlasedMaterial = false;
@@ -562,16 +577,18 @@ namespace AnimatedPeople
                     0,
                     false,
                     true);
+                if (material == null)
+                {
+                    Debug.LogError("[VE-AP] Failed to get atlas material.");
+                    return null;
+                }
                 mesh = dfUnity.MeshReader.GetBillboardMesh(
                     summary.AtlasRects[summary.AtlasIndices[record].startIndex],
                     archive,
                     record,
                     out size);
                 summary.AtlasedMaterial = true;
-                if (summary.AtlasIndices[record].frameCount > 1)
-                    summary.AnimatedMaterial = true;
-                else
-                    summary.AnimatedMaterial = false;
+                summary.AnimatedMaterial = summary.AtlasIndices[record].frameCount > 1;
             }
             else
             {
@@ -584,6 +601,11 @@ namespace AnimatedPeople
                     4,
                     true,
                     true);
+                if (material == null)
+                {
+                    Debug.LogError("[VE-AP] Failed to get default material.");
+                    return null;
+                }
                 mesh = dfUnity.MeshReader.GetBillboardMesh(
                     summary.Rect,
                     archive,
@@ -592,6 +614,26 @@ namespace AnimatedPeople
                 summary.AtlasedMaterial = false;
                 summary.AnimatedMaterial = false;
             }
+
+            // Debug logs for size and scale
+            Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+
+                // Debug logs for size and scale
+                Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+
+                if (xml != null)
+                {
+                    Debug.Log("VE-AP: Rescaling based on XML from GetCustomBillboardMaterial");
+                    Transform transform = GetComponent<Transform>();
+                    scale = xml.GetVector2("scaleX", "scaleY", Vector2.one);
+                    transform.localScale = new Vector3(scale.x, scale.y, transform.localScale.z);
+                    Vector2 uv = xml.GetVector2("uvX", "uvY", Vector2.zero);
+                    summary.Rect = new Rect(uv.x, uv.y, 1 - 2 * uv.x, 1 - 2 * uv.y);
+                }
+                else
+                {
+                    Debug.LogError($"VE-AP: XML data was not provided or found in GetCustomBillboardMaterial");
+                }
 
             // Set summary
             summary.FlatType = MaterialReader.GetFlatType(archive);
@@ -617,12 +659,11 @@ namespace AnimatedPeople
             }
             if (oldMesh)
             {
-                // The old mesh is no longer required
-#if UNITY_EDITOR
+        #if UNITY_EDITOR
                 DestroyImmediate(oldMesh);
-#else
+        #else
                 Destroy(oldMesh);
-#endif
+        #endif
             }
 
             // General billboard shadows if enabled
@@ -633,11 +674,12 @@ namespace AnimatedPeople
             if (summary.FlatType == FlatTypes.NPC)
             {
                 Collider col = gameObject.GetComponent<BoxCollider>();
-                if(col == null)
+                if (col == null)
                     col = gameObject.AddComponent<BoxCollider>();
                 col.isTrigger = true;
             }
 
+            Debug.Log($"[VE-AP] Successfully set material for archive={archive}, record={record}, size={summary.Size}, scale={scale}");
             return material;
         }
 
@@ -774,11 +816,12 @@ namespace AnimatedPeople
             return textures == null || textures.Any(texture => texture == null);
         }
 
-        static Material GetCustomBillboardMaterial(int archive, int record, string prefix, ref BillboardSummary summary, out Vector2 scale)
+        Material GetCustomBillboardMaterial(int archive, int record, string prefix, ref BillboardSummary summary, out Vector2 scale)
         {
             scale = Vector2.one;
 
             string firstFrameName = $"{archive}{prefix}_{record}-0";
+            string xmlFileName = $"{archive}_{record}-0";
 
             if(!textureCache.TryGetValue(firstFrameName, out List<Texture2D> albedo))
             {
@@ -827,10 +870,19 @@ namespace AnimatedPeople
             summary.ImportedTextures.Albedo = albedo;
             summary.ImportedTextures.FrameCount = albedo.Count;
 
+            Debug.Log("VE-AP: Attempting to rescale based on XML");
+            // Read XML configuration for scaling and UV
+            Vector2 uv = Vector2.zero;
+            if (XMLManager.TryReadXml(TextureReplacement.TexturesPath, xmlFileName, out xml))
+            {
+                Debug.Log("VE-AP: Rescaling based on XML");
+                scale = xml.GetVector2("scaleX", "scaleY", Vector2.one);
+                uv = xml.GetVector2("uvX", "uvY", uv);
+            }
 
             // Make material
             Material material = MaterialReader.CreateBillboardMaterial();
-            summary.Rect = new Rect(0, 0, 1, 1);
+            summary.Rect = new Rect(uv.x, uv.y, 1 - 2 * uv.x, 1 - 2 * uv.y);
 
             // Set textures on material
             material.SetTexture(Uniforms.MainTex, albedo[0]);
