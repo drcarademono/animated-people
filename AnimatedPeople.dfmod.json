@@ -1,6 +1,6 @@
 {
     "ModTitle": "Vanilla Enhanced - Animated People",
-    "ModVersion": "3.4.0",
+    "ModVersion": "3.4.1",
     "ModAuthor": "carademono & kaboissonneault",
     "ContactInfo": "Lysandus' Tomb Discord server",
     "DFUnity_Version": "1.0.0",
@@ -1982,6 +1982,7 @@
         "Assets/Game/Mods/animated-people/Prefabs/176_4.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/1200_5.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/186_14.prefab",
-        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab"
+        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab",
+        "Assets/Game/Mods/animated-people/FlatReplacements/OBTOrcs.json"
     ]
 }

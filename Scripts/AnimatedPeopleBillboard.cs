@@ -78,6 +78,10 @@ namespace AnimatedPeople
         bool materialSet = false;
         bool aligned = false;
 
+	    private static Mod FlatReplacerMod;
+
+	    private static bool FlatReplacerModEnabled;
+
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -85,6 +89,14 @@ namespace AnimatedPeople
 
             mod.LoadSettingsCallback = LoadSettings;
             mod.LoadSettings();
+
+		    FlatReplacerMod = ModManager.Instance.GetModFromGUID("8f05f3ed-bc08-4eb9-b856-05a58b0b63da");
+		    if (FlatReplacerMod != null && FlatReplacerMod.Enabled)
+		    {
+			    FlatReplacerModEnabled = true;
+			    if(verboseLogs) Debug.Log("VE-AP: Flat Replacer Mod is active");
+		    }
+
             mod.IsReady = true;
         }
 
@@ -187,15 +199,18 @@ namespace AnimatedPeople
         {
             if(verboseLogs) Debug.Log("[VE-AP] Start method called.");
 
-            // Initialize flatReplacements
-            flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
-            LoadFlatReplacements();
 
-            // Check and update archive/record values
-            CheckAndUpdateArchiveRecord();
+            if (FlatReplacerModEnabled) {
+                // Initialize flatReplacements
+                flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
+                LoadFlatReplacements();
 
-            // Handle Talk Window change
-            DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+                // Check and update archive/record values
+                CheckAndUpdateArchiveRecord();
+
+                // Handle Talk Window change
+                DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+            }
 
             // Load settings from CSV and update them
             LoadSettingsFromCSV();
