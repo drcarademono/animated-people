@@ -226,55 +226,66 @@ namespace AnimatedPeople
             }
         }
 
-void LoadSettingsFromCSV()
-{
-    // Set default values
-    SecondsPerFrame = 0.2f;
-    DelayMin = 0;
-    DelayMax = 0;
-    RepeatMin = 0;
-    RepeatMax = 0;
-
-    string filePath = "AnimatedPeople.csv"; // Path to your CSV file
-    if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
-    {
-        using (StringReader reader = new StringReader(csvAsset.text))
+        void LoadSettingsFromCSV()
         {
-            string line = reader.ReadLine(); // Read header line
-            while ((line = reader.ReadLine()) != null)
+            // Set default values
+            SecondsPerFrame = 0.2f;
+            DelayMin = 0;
+            DelayMax = 0;
+            RepeatMin = 0;
+            RepeatMax = 0;
+
+            string filePath = "AnimatedPeople.csv"; // Path to your CSV file
+            try
             {
-                string[] values = line.Split(',');
-
-                // Assuming columns are Archive, Record, SecondsPerFrame, DelayMin, DelayMax, RepeatMin, RepeatMax
-                int archive = int.Parse(values[0]);
-                int record = int.Parse(values[1]);
-
-                // Check if the current archive and record match the row's archive and record
-                if (archive == this.Archive && record == this.Record)
+                if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
                 {
-                    // Update the settings
-                    SecondsPerFrame = float.Parse(values[2]);
-                    DelayMin = float.Parse(values[3]);
-                    DelayMax = float.Parse(values[4]);
-                    RepeatMin = int.Parse(values[5]);
-                    RepeatMax = int.Parse(values[6]);
-
-                    if (verboseLogs)
+                    using (StringReader reader = new StringReader(csvAsset.text))
                     {
-                        Debug.Log($"[VE-AP] Loaded settings from CSV for {Archive}-{Record}: SecondsPerFrame={SecondsPerFrame}, DelayMin={DelayMin}, DelayMax={DelayMax}, RepeatMin={RepeatMin}, RepeatMax={RepeatMax}");
+                        string line = reader.ReadLine(); // Read header line
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            string[] values = line.Split(',');
+
+                            // Assuming columns are Archive, Record, SecondsPerFrame, DelayMin, DelayMax, RepeatMin, RepeatMax
+                            if (values.Length < 7)
+                            {
+                                Debug.LogWarning($"[VE-AP] Incorrect number of columns in CSV: {line}");
+                                continue;
+                            }
+
+                            int archive = int.Parse(values[0]);
+                            int record = int.Parse(values[1]);
+
+                            // Check if the current archive and record match the row's archive and record
+                            if (archive == this.Archive && record == this.Record)
+                            {
+                                // Update the settings
+                                SecondsPerFrame = float.TryParse(values[2], out float spf) ? spf : SecondsPerFrame;
+                                DelayMin = float.TryParse(values[3], out float dmin) ? dmin : DelayMin;
+                                DelayMax = float.TryParse(values[4], out float dmax) ? dmax : DelayMax;
+                                RepeatMin = int.TryParse(values[5], out int rmin) ? rmin : RepeatMin;
+                                RepeatMax = int.TryParse(values[6], out int rmax) ? rmax : RepeatMax;
+
+                                if (verboseLogs)
+                                {
+                                    Debug.Log($"[VE-AP] Loaded settings from CSV for {Archive}-{Record}: SecondsPerFrame={SecondsPerFrame}, DelayMin={DelayMin}, DelayMax={DelayMax}, RepeatMin={RepeatMin}, RepeatMax={RepeatMax}");
+                                }
+                                break; // Exit loop once settings are found and updated
+                            }
+                        }
                     }
-                    break; // Exit loop once settings are found and updated
+                }
+                else
+                {
+                    Debug.LogError("[VE-AP] CSV asset not found.");
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[VE-AP] Error loading settings from CSV: {ex.Message}");
+            }
         }
-    }
-    else
-    {
-        Debug.LogError("[VE-AP] CSV asset not found.");
-    }
-}
-
-
 
         void LoadFlatReplacements()
         {
@@ -700,7 +711,7 @@ void LoadSettingsFromCSV()
                 }
                 else
                 {
-                    if(verboseLogs) Debug.LogError($"VE-AP: XML data was not provided or found in GetCustomBillboardMaterial");
+                    if(verboseLogs) Debug.Log($"VE-AP: XML data was not provided or found in GetCustomBillboardMaterial");
                 }
 
             // Set summary
