@@ -1,6 +1,6 @@
 {
     "ModTitle": "Vanilla Enhanced - Animated People",
-    "ModVersion": "3.4.2",
+    "ModVersion": "3.4.3",
     "ModAuthor": "carademono & kaboissonneault",
     "ContactInfo": "Lysandus' Tomb Discord server",
     "DFUnity_Version": "1.0.0",
@@ -275,7 +275,6 @@
         "Assets/Game/Mods/animated-people/Textures/357_9-2.png",
         "Assets/Game/Mods/animated-people/Textures/334_14-0.png",
         "Assets/Game/Mods/animated-people/Textures/176_0-2.png",
-        "Assets/Game/Mods/animated-people/Textures/182_16-2.png",
         "Assets/Game/Mods/animated-people/Prefabs/182_27.prefab",
         "Assets/Game/Mods/animated-people/Textures/182_49-3.png",
         "Assets/Game/Mods/animated-people/Textures/346_19-1.png",
@@ -483,7 +482,6 @@
         "Assets/Game/Mods/animated-people/Textures/334_3-0.png",
         "Assets/Game/Mods/animated-people/Textures/179_2-16.png",
         "Assets/Game/Mods/animated-people/Textures/175_11-0.png",
-        "Assets/Game/Mods/animated-people/Textures/182_16-3.png",
         "Assets/Game/Mods/animated-people/Textures/346_10-0.png",
         "Assets/Game/Mods/animated-people/Textures/175_13-2.png",
         "Assets/Game/Mods/animated-people/Textures/184_6-0.png",
@@ -1080,7 +1078,6 @@
         "Assets/Game/Mods/animated-people/Textures/182_20-1.png",
         "Assets/Game/Mods/animated-people/Textures/182_48-2.png",
         "Assets/Game/Mods/animated-people/Textures/183_16-7.png",
-        "Assets/Game/Mods/animated-people/Textures/182_16-4.png",
         "Assets/Game/Mods/animated-people/Textures/184_31-2.png",
         "Assets/Game/Mods/animated-people/Textures/181_7-7.png",
         "Assets/Game/Mods/animated-people/Textures/182_55-3.png",
@@ -1984,5 +1981,32 @@
         "Assets/Game/Mods/animated-people/Prefabs/186_14.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab",
         "Assets/Game/Mods/animated-people/FlatReplacements/OBTOrcs.json"
+    ],
+    "Dependencies": [
+        {
+            "Name": "roleplayrealism",
+            "IsOptional": true,
+            "IsPeer": false
+        },
+        {
+            "Name": "rmb resource pack",
+            "IsOptional": true,
+            "IsPeer": false
+        },
+        {
+            "Name": "daggerfall expanded textures",
+            "IsOptional": true,
+            "IsPeer": false
+        },
+        {
+            "Name": "no nudity",
+            "IsOptional": true,
+            "IsPeer": false
+        },
+        {
+            "Name": "daggerfall enemy expansion",
+            "IsOptional": true,
+            "IsPeer": false
+        }
     ]
 }

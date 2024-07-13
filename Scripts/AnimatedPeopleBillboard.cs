@@ -77,6 +77,8 @@ namespace AnimatedPeople
         bool firstUpdate = true;
         bool materialSet = false;
         bool aligned = false;
+    
+        bool RnRFlag = false;
 
 	    private static Mod FlatReplacerMod;
 
@@ -396,7 +398,7 @@ namespace AnimatedPeople
 
         private void OnWindowChange(object sender, EventArgs e)
         {
-            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC)
+            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC || RnRFlag)
                 return;
 
             var replacementBillboard = TalkManager.Instance.StaticNPC.gameObject.GetComponent<AnimatedPeopleBillboard>();
@@ -481,7 +483,7 @@ namespace AnimatedPeople
 
                 summary.Archive = Archive;
                 summary.Record = Record;
-                AlignToBase();
+                if (!RnRFlag) AlignToBase();
                 firstUpdate = false;
             }
 
@@ -597,7 +599,8 @@ namespace AnimatedPeople
             // archive-record. Ignore their calls to SetMaterial
             if (archive != Archive || record != Record)
             {
-                return null;
+                //return null;
+                RnRFlag = true;
             }
 
             // Get DaggerfallUnity
