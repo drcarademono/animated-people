@@ -603,6 +603,13 @@ namespace AnimatedPeople
                 RnRFlag = true;
             }
 
+            if (archive == 0 && record == 0) // Fixes exterior NPCs, which must be called as 0-0 somehow in RMBLayout.
+            {
+                archive = Archive;
+                record = Record;
+                RnRFlag = false;
+            }
+
             // Get DaggerfallUnity
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
             if (!dfUnity.IsReady)
