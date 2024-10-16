@@ -50,7 +50,9 @@ namespace AnimatedPeople
         public int Archive = 182;
         public int Record = 0;
 
-    private XMLManager xml;
+        private bool useExactDimensions = true;
+
+        private XMLManager xml;
 
         #region Billboard
         public override int FramesPerSecond
@@ -212,6 +214,41 @@ namespace AnimatedPeople
 
                 // Handle Talk Window change
                 DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+
+                PlayerEnterExit.OnTransitionInterior += OverrideFlarReplacer;
+
+            }
+
+            // Load settings from CSV and update them
+            LoadSettingsFromCSV();
+
+            if (DelayMax != 0.0f)
+            {
+                animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
+            }
+
+            if (RepeatMax != 0)
+            {
+                repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
+            }
+        }
+
+        private void OverrideFlarReplacer(PlayerEnterExit.TransitionEventArgs args)
+        {
+            // Your logic here to override the sprite again after FlatReplacer does its work
+            if (FlatReplacerModEnabled) {
+                // Initialize flatReplacements
+                flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
+                LoadFlatReplacements();
+
+                // Check and update archive/record values
+                CheckAndUpdateArchiveRecord();
+
+                // Handle Talk Window change
+                DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
+
+                PlayerEnterExit.OnTransitionInterior += OverrideFlarReplacer;
+
             }
 
             // Load settings from CSV and update them
@@ -380,13 +417,16 @@ namespace AnimatedPeople
             var chosenIndex = candidates.Count > 1 ? new System.Random().Next(candidates.Count) : 0;
             var chosenReplacement = flatReplacements[key][candidates[chosenIndex]];
 
-            if(verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}.");
+            if(verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}. UseExactDimension: {chosenReplacement.Record.UseExactDimensions}");
 
             Archive = chosenReplacement.Record.ReplaceTextureArchive;
             Record = chosenReplacement.Record.ReplaceTextureRecord;
+            useExactDimensions = chosenReplacement.Record.UseExactDimensions;
+
 
             // Update material and mesh
             SetMaterial(Archive, Record);
+
 
             // Set custom portrait if applicable
             if (chosenReplacement.Record.FlatPortrait > -1)
@@ -709,6 +749,20 @@ namespace AnimatedPeople
 
                 // Debug logs for size and scale
                 if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+
+                if (!useExactDimensions)
+                {
+                    if (verboseLogs) Debug.Log("VE-AP: Rescaling based on CSV");
+                    Transform transform = GetComponent<Transform>();
+
+                    // Set scale to 0.65 for both x and y
+                    transform.localScale = new Vector3(0.65f, 0.65f, transform.localScale.z); // Placeholder value tk
+
+                    // Optional: You can leave UV adjustment if necessary
+                    Vector2 uv = Vector2.zero;  // Set default UVs
+                    summary.Rect = new Rect(uv.x, uv.y, 1 - 2 * uv.x, 1 - 2 * uv.y);
+                    AlignToBase();
+                }
 
                 if (xml != null)
                 {

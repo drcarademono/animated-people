@@ -117,9 +117,9 @@ MonoBehaviour:
     WaterLevel: 0
     CastleBlock: 0
   SecondsPerFrame: 0.1
-  DelayMin: 0
-  DelayMax: 0
+  DelayMin: 3
+  DelayMax: 6
   RepeatMin: 0
-  RepeatMax: 0
+  RepeatMax: 1
   Archive: 181
   Record: 4
