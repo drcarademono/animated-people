@@ -8,6 +8,7 @@ using UnityEngine.Rendering;
 using System;
 using System.Collections;
 using DaggerfallConnect;
+using DaggerfallConnect.Utility;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game;
@@ -49,6 +50,8 @@ namespace AnimatedPeople
 
         public int Archive = 182;
         public int Record = 0;
+
+        public float originalScale = 1.0f;
 
         private bool useExactDimensions = true;
 
@@ -186,6 +189,8 @@ namespace AnimatedPeople
                     meshRenderer.enabled = false;
                 }
             }
+
+            originalScale = GetOriginalScale(Archive, Record);
         }
 
         private void OnEnable()
@@ -215,7 +220,7 @@ namespace AnimatedPeople
                 // Handle Talk Window change
                 DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
 
-                PlayerEnterExit.OnTransitionInterior += OverrideFlarReplacer;
+                PlayerEnterExit.OnTransitionInterior += OverrideFlatReplacer;
 
             }
 
@@ -233,7 +238,7 @@ namespace AnimatedPeople
             }
         }
 
-        private void OverrideFlarReplacer(PlayerEnterExit.TransitionEventArgs args)
+        private void OverrideFlatReplacer(PlayerEnterExit.TransitionEventArgs args)
         {
             // Your logic here to override the sprite again after FlatReplacer does its work
             if (FlatReplacerModEnabled) {
@@ -247,7 +252,7 @@ namespace AnimatedPeople
                 // Handle Talk Window change
                 DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
 
-                PlayerEnterExit.OnTransitionInterior += OverrideFlarReplacer;
+                PlayerEnterExit.OnTransitionInterior += OverrideFlatReplacer;
 
             }
 
@@ -263,6 +268,62 @@ namespace AnimatedPeople
             {
                 repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
             }
+        }
+
+        public float GetOriginalScale(int archive, int record)
+        {
+            // Debug message indicating the start of the scale calculation process
+            if (verboseLogs) Debug.Log($"[GetOriginalScale] Starting for archive {archive}, record {record}.");
+
+            // Get the size of the original billboard mesh
+            Vector2 meshSize;
+            Mesh billboardMesh = DaggerfallUnity.Instance.MeshReader.GetBillboardMesh(new Rect(0, 0, 1, 1), archive, record, out meshSize);
+
+            if (billboardMesh == null)
+            {
+                if (verboseLogs) Debug.LogError($"[GetOriginalScale] Failed to get billboard mesh for archive {archive}, record {record}.");
+                return 1.0f; // Default to 1.0f scale if unable to get mesh
+            }
+
+            // Debugging the original mesh dimensions
+            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original Billboard Mesh size (X, Y): {meshSize.x}, {meshSize.y}");
+
+            // Retrieve the original texture using the correct GetTexture2D method
+            var settings = new GetTextureSettings
+            {
+                archive = archive,
+                record = record,
+                frame = 0,
+                alphaIndex = 0
+            };
+
+            GetTextureResults textureResults = DaggerfallUnity.Instance.MaterialReader.TextureReader.GetTexture2D(settings);
+            Texture2D originalTexture = textureResults.albedoMap;
+
+            if (originalTexture == null)
+            {
+                if (verboseLogs) Debug.LogError($"[GetOriginalScale] Failed to get original texture for archive {archive}, record {record}.");
+                return 1.0f; // Default to 1.0f scale if unable to get texture
+            }
+
+            // Retrieve texture dimensions
+            int textureWidth = originalTexture.width;
+            int textureHeight = originalTexture.height;
+
+            // Debugging the original texture dimensions
+            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original Texture size (Width, Height): {textureWidth}, {textureHeight}");
+
+            // Calculate the scale based on MeshX/TextureWidth or MeshY/TextureHeight
+            float scaleX = (meshSize.x * 40.0f) / textureWidth;
+            float scaleY = (meshSize.y * 40.0f) / textureHeight;
+
+            // For simplicity, return the average of X and Y scales
+            float originalScale = (scaleX + scaleY) / 2.0f;
+
+            // Debugging the final scale
+            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original scale calculated: {originalScale}");
+
+            return originalScale;
         }
 
         void LoadSettingsFromCSV()
@@ -417,7 +478,7 @@ namespace AnimatedPeople
             var chosenIndex = candidates.Count > 1 ? new System.Random().Next(candidates.Count) : 0;
             var chosenReplacement = flatReplacements[key][candidates[chosenIndex]];
 
-            if(verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}. UseExactDimension: {chosenReplacement.Record.UseExactDimensions}");
+            if(verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}. UseExactDimension: {chosenReplacement.Record.UseExactDimensions}.");
 
             Archive = chosenReplacement.Record.ReplaceTextureArchive;
             Record = chosenReplacement.Record.ReplaceTextureRecord;
@@ -650,6 +711,7 @@ namespace AnimatedPeople
                 RnRFlag = false;
             }
 
+
             // Get DaggerfallUnity
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
             if (!dfUnity.IsReady)
@@ -744,19 +806,16 @@ namespace AnimatedPeople
                 summary.AnimatedMaterial = false;
             }
 
-            // Debug logs for size and scale
-            if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
-
                 // Debug logs for size and scale
-                if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}");
+                if(verboseLogs) Debug.Log($"[VE-AP] Mesh Size: {size}, Scale: {scale}, originalScale: {originalScale}");
 
                 if (!useExactDimensions)
                 {
-                    if (verboseLogs) Debug.Log("VE-AP: Rescaling based on CSV");
+                    if (verboseLogs) Debug.Log($"VE-AP: Rescaling Archive {Archive}, Record {Record} based on originalScale {originalScale}");
                     Transform transform = GetComponent<Transform>();
 
-                    // Set scale to 0.65 for both x and y
-                    transform.localScale = new Vector3(0.65f, 0.65f, transform.localScale.z); // Placeholder value tk
+                    // Set scale to originalScale for both x and y
+                    transform.localScale = new Vector3(originalScale, originalScale, transform.localScale.z); // Placeholder value tk
 
                     // Optional: You can leave UV adjustment if necessary
                     Vector2 uv = Vector2.zero;  // Set default UVs
