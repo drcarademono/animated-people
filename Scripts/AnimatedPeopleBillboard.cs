@@ -406,13 +406,13 @@ namespace AnimatedPeople
 
             foreach (var replacementFile in replacementFiles)
             {
-                if(verboseLogs) Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
+                if (verboseLogs) Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
                 using (var streamReader = new StreamReader(replacementFile))
                 {
                     var fsResult = fsJsonParser.Parse(streamReader.ReadToEnd(), out var fsData); // Parse whole file.
                     if (!fsResult.Equals(fsResult.Success))
                     {
-                        if(verboseLogs) Debug.LogError($"[VE-AP] Failed to parse replacement file: {replacementFile}");
+                        if (verboseLogs) Debug.LogError($"[VE-AP] Failed to parse replacement file: {replacementFile}");
                         continue;
                     }
 
@@ -423,15 +423,43 @@ namespace AnimatedPeople
                 // Load flat graphics
                 foreach (var record in replacementRecords)
                 {
-                    var key = ((uint)record.TextureArchive << 16) + (uint)record.TextureRecord; // Pack archive and record into single unsigned 32-bit integer
-                    if (!flatReplacements.ContainsKey(key))
-                        flatReplacements[key] = new List<FlatReplacement>();
+                    int replaceTextureArchive = record.ReplaceTextureArchive;
+                    int replaceTextureRecord = record.ReplaceTextureRecord;
 
-                    var isValidVanillaFlat = record.ReplaceTextureArchive > -1 && record.ReplaceTextureRecord > -1;
+                    // Check if ReplaceTextureArchive and ReplaceTextureRecord are -1
+                    if (replaceTextureArchive == -1 && replaceTextureRecord == -1 && !string.IsNullOrEmpty(record.FlatTextureName))
+                    {
+                        // Try to parse the FlatTextureName if it's in the format "ReplaceTextureArchive_ReplaceTextureRecord-"
+                        var flatTextureNameParts = record.FlatTextureName.Split('_', '-');
+                        if (flatTextureNameParts.Length >= 2 &&
+                            int.TryParse(flatTextureNameParts[0], out replaceTextureArchive) &&
+                            int.TryParse(flatTextureNameParts[1], out replaceTextureRecord))
+                        {
+                            if (verboseLogs) Debug.Log($"[VE-AP] Parsed FlatTextureName: {record.FlatTextureName} as ReplaceTextureArchive={replaceTextureArchive}, ReplaceTextureRecord={replaceTextureRecord}");
+
+                            // Assign the parsed values back to the record
+                            record.ReplaceTextureArchive = replaceTextureArchive;
+                            record.ReplaceTextureRecord = replaceTextureRecord;
+                        }
+                        else
+                        {
+                            // If parsing fails, ignore this entry and keep ReplaceTextureArchive and ReplaceTextureRecord as -1
+                            replaceTextureArchive = -1;
+                            replaceTextureRecord = -1;
+                        }
+                    }
+
+                    // Only process valid replacements
+                    var isValidVanillaFlat = replaceTextureArchive > -1 && replaceTextureRecord > -1;
 
                     if (isValidVanillaFlat)
                     {
                         if(verboseLogs) Debug.Log($"[VE-AP] Adding valid vanilla flat replacement: {record.TextureArchive}-{record.TextureRecord}");
+                        var key = ((uint)record.TextureArchive << 16) + (uint)record.TextureRecord; // Pack archive and record into single unsigned 32-bit integer
+                        if (!flatReplacements.ContainsKey(key))
+                            flatReplacements[key] = new List<FlatReplacement>();
+
+                        if (verboseLogs) Debug.Log($"[VE-AP] Adding valid vanilla flat replacement: {record.TextureArchive}-{record.TextureRecord}");
                         flatReplacements[key].Add(new FlatReplacement() { Record = record });
                     }
                 }
