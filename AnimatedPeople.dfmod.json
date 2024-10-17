@@ -973,6 +973,7 @@
         "Assets/Game/Mods/animated-people/Textures/175_6-1.png",
         "Assets/Game/Mods/animated-people/Textures/334_10-0.png",
         "Assets/Game/Mods/animated-people/Scripts/AnimatedPeopleBillboard.cs",
+        "Assets/Game/Mods/animated-people/AnimatedPeople.cs",
         "Assets/Game/Mods/animated-people/Textures/182_56-7.png",
         "Assets/Game/Mods/animated-people/Textures/184_8-1.png",
         "Assets/Game/Mods/animated-people/Textures/182_55-4.png",
@@ -1979,8 +1980,7 @@
         "Assets/Game/Mods/animated-people/Prefabs/176_4.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/1200_5.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/186_14.prefab",
-        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab",
-        "Assets/Game/Mods/animated-people/FlatReplacements/OBTOrcs.json"
+        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab"
     ],
     "Dependencies": [
         {
