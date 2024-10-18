@@ -218,40 +218,6 @@ namespace AnimatedPeople
 
                 // Handle Talk Window change
                 DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
-
-                PlayerEnterExit.OnTransitionInterior += OverrideFlatReplacer;
-
-            }
-
-            // Load settings from CSV and update them
-            LoadSettingsFromCSV();
-
-            if (DelayMax != 0.0f)
-            {
-                animationDelay = UnityEngine.Random.Range(DelayMin, DelayMax);
-            }
-
-            if (RepeatMax != 0)
-            {
-                repeatCount = UnityEngine.Random.Range(RepeatMin, RepeatMax + 1);
-            }
-        }
-
-        private void OverrideFlatReplacer(PlayerEnterExit.TransitionEventArgs args)
-        {
-            // Your logic here to override the sprite again after FlatReplacer does its work
-            if (FlatReplacerModEnabled) {
-                // Initialize flatReplacements
-                flatReplacements = new Dictionary<uint, List<FlatReplacement>>();
-
-                // Check and update archive/record values
-                CheckAndUpdateArchiveRecord();
-
-                // Handle Talk Window change
-                DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
-
-                PlayerEnterExit.OnTransitionInterior += OverrideFlatReplacer;
-
             }
 
             // Load settings from CSV and update them
