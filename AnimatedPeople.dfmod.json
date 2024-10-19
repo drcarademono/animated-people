@@ -1980,7 +1980,14 @@
         "Assets/Game/Mods/animated-people/Prefabs/176_4.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/1200_5.prefab",
         "Assets/Game/Mods/animated-people/Prefabs/186_14.prefab",
-        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab"
+        "Assets/Game/Mods/animated-people/Prefabs/179_2.prefab",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197001-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197006-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197003-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197004-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197000-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197002-0.png",
+        "Assets/Game/Mods/animated-people/Textures/Portraits/TFAC00I0.RCI_197005-0.png"
     ],
     "Dependencies": [
         {

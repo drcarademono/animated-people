@@ -51,6 +51,9 @@ namespace AnimatedPeople
         public int Archive = 182;
         public int Record = 0;
 
+        public int RnRArchive = 0;
+        public int RnRRecord = 0;
+
         public float originalScale = 1.0f;
 
         private bool useExactDimensions = true;
@@ -410,12 +413,20 @@ namespace AnimatedPeople
 
         private void OnWindowChange(object sender, EventArgs e)
         {
-            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC || RnRFlag)
+            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC)
                 return;
 
             var replacementBillboard = TalkManager.Instance.StaticNPC.gameObject.GetComponent<AnimatedPeopleBillboard>();
             var facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
             GameManager.Instance.PlayerEntity.FactionData.GetFactionData(TalkManager.Instance.StaticNPC.Data.factionID, out var factionData);
+
+            if (RnRFlag && RnRArchive == 197 && RnRRecord >= 0 && RnRRecord <= 6)
+            {
+                int portraitId = 197000 + RnRRecord;
+                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, portraitId);
+                return;
+            }
+
             if (factionData.type == 4 && factionData.face <= 60)
                 facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.SpecialFaces;
 
@@ -612,6 +623,8 @@ namespace AnimatedPeople
             if (archive != Archive || record != Record)
             {
                 //return null;
+                RnRArchive = archive;
+                RnRRecord = record;
                 RnRFlag = true;
             }
 
