@@ -215,8 +215,8 @@ namespace AnimatedPeople
                 originalRecord = summary.Record;
 
                 // Set to dummy values to avoid FlatReplacer detection
-                summary.Archive = -1;
-                summary.Record = -1;
+                summary.Archive = 0;
+                summary.Record = 0;
 
                 if (verboseLogs) Debug.Log($"[VE-AP] Overriding FlatReplacer for archive {originalArchive} and record {originalRecord}");
             }
@@ -500,17 +500,6 @@ namespace AnimatedPeople
             }
 
             SetMaterial(Archive, Record);
-
-            int frameCount = GetFrameCount();
-            if(frameCount == 0)
-            {
-                if(verboseLogs) Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
-                return;
-            }
-
-            summary.CurrentFrame = 0; //frameCount - 1;
-
-            SetCurrentFrame();
         }
 
         void Update()
@@ -521,7 +510,20 @@ namespace AnimatedPeople
 
                 summary.Archive = Archive;
                 summary.Record = Record;
-                if (!RnRFlag) AlignToBase();
+                //if (!RnRFlag) AlignToBase();
+                AlignToBase();
+            int frameCount = GetFrameCount();
+                Debug.LogWarning($"[VE-AP] frameCount is {frameCount} on record '{Archive}_{Record}'");
+
+            if(frameCount == 0)
+            {
+                if(verboseLogs) Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
+                return;
+            }
+
+            summary.CurrentFrame = frameCount - 1;
+
+            SetCurrentFrame();
                 firstUpdate = false;
             }
 
