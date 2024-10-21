@@ -698,30 +698,48 @@ namespace AnimatedPeople
             }
             else if (dfUnity.MaterialReader.AtlasTextures)
             {
-                material = dfUnity.MaterialReader.GetMaterialAtlas(
-                    archive,
-                    0,
-                    4,
-                    2048,
-                    out summary.AtlasRects,
-                    out summary.AtlasIndices,
-                    4,
-                    true,
-                    0,
-                    false,
-                    true);
-                if (material == null)
+                try
                 {
-                    Debug.LogError("[VE-AP] Failed to get atlas material.");
+                    material = dfUnity.MaterialReader.GetMaterialAtlas(
+                        archive,
+                        0,
+                        4,
+                        2048,
+                        out summary.AtlasRects,
+                        out summary.AtlasIndices,
+                        4,
+                        true,
+                        0,
+                        false,
+                        true);
+
+                    if (material == null)
+                    {
+                        Debug.LogError("[VE-AP] Failed to get atlas material.");
+                        return null;
+                    }
+
+                    // Ensure the record index is within bounds
+                    if (record < 0 || record >= summary.AtlasIndices.Length)
+                    {
+                        if (verboseLogs) Debug.Log($"[VE-AP] Record index {record} is out of bounds for atlas indices.");
+                        return null;
+                    }
+
+                    mesh = dfUnity.MeshReader.GetBillboardMesh(
+                        summary.AtlasRects[summary.AtlasIndices[record].startIndex],
+                        archive,
+                        record,
+                        out size);
+
+                    summary.AtlasedMaterial = true;
+                    summary.AnimatedMaterial = summary.AtlasIndices[record].frameCount > 1;
+                }
+                catch (IndexOutOfRangeException)
+                {
+                    if (verboseLogs) Debug.Log($"[VE-AP] Caught IndexOutOfRangeException: Record index {record} is out of bounds for atlas indices.");
                     return null;
                 }
-                mesh = dfUnity.MeshReader.GetBillboardMesh(
-                    summary.AtlasRects[summary.AtlasIndices[record].startIndex],
-                    archive,
-                    record,
-                    out size);
-                summary.AtlasedMaterial = true;
-                summary.AnimatedMaterial = summary.AtlasIndices[record].frameCount > 1;
             }
             else
             {

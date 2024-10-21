@@ -54,6 +54,14 @@ namespace AnimatedPeople
 
             foreach (var replacementFile in replacementFiles)
             {
+
+                // Check if the file is a .json file (ignore .meta or other files)
+                if (!replacementFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (verboseLogs) Debug.Log($"[VE-AP] Skipping non-JSON file: {replacementFile}");
+                    continue;
+                }
+
                 if (verboseLogs) Debug.Log($"[VE-AP] Reading replacement file: {replacementFile}");
                 using (var streamReader = new StreamReader(replacementFile))
                 {
