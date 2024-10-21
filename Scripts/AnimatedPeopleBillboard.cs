@@ -512,18 +512,29 @@ namespace AnimatedPeople
                 summary.Record = Record;
                 //if (!RnRFlag) AlignToBase();
                 AlignToBase();
-            int frameCount = GetFrameCount();
-                Debug.LogWarning($"[VE-AP] frameCount is {frameCount} on record '{Archive}_{Record}'");
 
-            if(frameCount == 0)
-            {
-                if(verboseLogs) Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
-                return;
-            }
+                int frameCount = GetFrameCount();
 
-            summary.CurrentFrame = frameCount - 1;
+                if(frameCount == 0)
+                {
+                    if(verboseLogs) Debug.LogError($"[VE-AP] Could not setup AP, frame count is zero on record '{Archive}_{Record}'");
+                    return;
+                }
 
-            SetCurrentFrame();
+                summary.CurrentFrame = frameCount - 1;
+
+                SetCurrentFrame();
+
+                var col = gameObject.GetComponent<BoxCollider>();
+
+                // Calculate adjusted collider size based on mesh size and scaling
+                Vector3 adjustedColliderSize = new Vector3(
+                    summary.Size.x / transform.localScale.x,
+                    summary.Size.y / transform.localScale.y,
+                    0.1f // Small depth for 2D object
+                );
+                col.size = adjustedColliderSize;
+
                 firstUpdate = false;
             }
 
@@ -655,7 +666,6 @@ namespace AnimatedPeople
                 RnRFlag = false;
             }
 
-
             // Get DaggerfallUnity
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
             if (!dfUnity.IsReady)
@@ -664,6 +674,13 @@ namespace AnimatedPeople
             // Get references
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
+
+            // Remove existing BoxCollider to avoid conflicts
+            BoxCollider existingCollider = gameObject.GetComponent<BoxCollider>();
+            if (existingCollider != null)
+            {
+                Destroy(existingCollider);
+            }
 
             string prefix = GetSettingPrefix(archive, record);
 
