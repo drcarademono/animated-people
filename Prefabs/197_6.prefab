@@ -116,10 +116,13 @@ MonoBehaviour:
     FixedEnemyType: 0
     WaterLevel: 0
     CastleBlock: 0
-  SecondsPerFrame: 0.1
-  DelayMin: 0
-  DelayMax: 0
+  SecondsPerFrame: 0.2
+  DelayMin: 3
+  DelayMax: 6
   RepeatMin: 0
-  RepeatMax: 0
+  RepeatMax: 1
   Archive: 197
   Record: 6
+  RnRArchive: 0
+  RnRRecord: 0
+  originalScale: 1

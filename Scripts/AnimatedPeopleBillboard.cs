@@ -51,6 +51,9 @@ namespace AnimatedPeople
         public int Archive = 182;
         public int Record = 0;
 
+        private int originalArchive;
+        private int originalRecord;
+
         public int RnRArchive = 0;
         public int RnRRecord = 0;
 
@@ -205,6 +208,18 @@ namespace AnimatedPeople
                 SetupAnimatedPeople();
                 materialSet = true;
             }
+
+            if (FlatReplacerModEnabled) {
+                // Store the original values
+                originalArchive = summary.Archive;
+                originalRecord = summary.Record;
+
+                // Set to dummy values to avoid FlatReplacer detection
+                summary.Archive = -1;
+                summary.Record = -1;
+
+                if (verboseLogs) Debug.Log($"[VE-AP] Overriding FlatReplacer for archive {originalArchive} and record {originalRecord}");
+            }
         }
 
         void Start()
@@ -222,9 +237,6 @@ namespace AnimatedPeople
                 // Handle Talk Window change
                 DaggerfallUI.UIManager.OnWindowChange += OnWindowChange;
             }
-
-            // Load settings from CSV and update them
-            LoadSettingsFromCSV();
 
             if (DelayMax != 0.0f)
             {
@@ -295,6 +307,9 @@ namespace AnimatedPeople
 
         void LoadSettingsFromCSV()
         {
+
+            if (verboseLogs) Debug.Log($"[LoadSettingsFromCSV] LoadSettingsFromCSV called on Archive {Archive}, Record {Record}");
+
             // Set default values
             SecondsPerFrame = 0.2f;
             DelayMin = 0;
@@ -493,7 +508,7 @@ namespace AnimatedPeople
                 return;
             }
 
-            summary.CurrentFrame = frameCount - 1;
+            summary.CurrentFrame = 0; //frameCount - 1;
 
             SetCurrentFrame();
         }
@@ -618,6 +633,9 @@ namespace AnimatedPeople
         {
             if (verboseLogs) Debug.Log($"[VE-AP] SetMaterial on {Archive}-{Record} with archive={archive} and record={record}");
 
+            // Load settings from CSV and update them
+            LoadSettingsFromCSV();
+
             // AP is not setup to handle mods that change our billboard to another
             // archive-record. Ignore their calls to SetMaterial
             if (archive != Archive || record != Record)
@@ -652,7 +670,7 @@ namespace AnimatedPeople
             Mesh mesh = null;
             Material material = null;
 
-            if (!string.IsNullOrEmpty(prefix) || archive > 511)
+            if (!string.IsNullOrEmpty(prefix) || archive == 197 || archive > 511)
             {
                 material = GetCustomBillboardMaterial(archive, record, prefix, ref summary, out scale);
                 if (material == null)
