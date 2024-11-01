@@ -510,8 +510,8 @@ namespace AnimatedPeople
 
                 summary.Archive = Archive;
                 summary.Record = Record;
-                //if (!RnRFlag) AlignToBase();
-                AlignToBase();
+                if (!RnRFlag) AlignToBase();
+                //AlignToBase();
 
                 int frameCount = GetFrameCount();
 
@@ -674,13 +674,6 @@ namespace AnimatedPeople
             // Get references
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
-
-            // Remove existing BoxCollider to avoid conflicts
-            BoxCollider existingCollider = gameObject.GetComponent<BoxCollider>();
-            if (existingCollider != null)
-            {
-                Destroy(existingCollider);
-            }
 
             string prefix = GetSettingPrefix(archive, record);
 
