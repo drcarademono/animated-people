@@ -1,5 +1,8 @@
 Archive,Record,SecondsPerFrame,DelayMin,DelayMax,RepeatMin,RepeatMax
 180,0,0.2,3,6,0,1
+180,1,0.2,3,6,0,1
+180,2,0.2,3,6,0,1
+180,3,0.2,3,6,0,1
 182,1,0.2,3,6,0,1
 182,2,0.2,3,6,0,1
 182,3,0.2,3,6,0,1
