@@ -251,58 +251,87 @@ namespace AnimatedPeople
 
         public float GetOriginalScale(int archive, int record)
         {
-            // Debug message indicating the start of the scale calculation process
             if (verboseLogs) Debug.Log($"[GetOriginalScale] Starting for archive {archive}, record {record}.");
 
-            // Get the size of the original billboard mesh
+            // 1) Mesh
             Vector2 meshSize;
-            Mesh billboardMesh = DaggerfallUnity.Instance.MeshReader.GetBillboardMesh(new Rect(0, 0, 1, 1), archive, record, out meshSize);
-
+            Mesh billboardMesh = DaggerfallUnity.Instance.MeshReader
+                .GetBillboardMesh(new Rect(0,0,1,1), archive, record, out meshSize);
             if (billboardMesh == null)
             {
-                if (verboseLogs) Debug.LogError($"[GetOriginalScale] Failed to get billboard mesh for archive {archive}, record {record}.");
-                return 1.0f; // Default to 1.0f scale if unable to get mesh
+                if (verboseLogs) Debug.LogError($"[GetOriginalScale] Missing mesh for {archive}-{record}.");
+                return 1f;
             }
 
-            // Debugging the original mesh dimensions
-            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original Billboard Mesh size (X, Y): {meshSize.x}, {meshSize.y}");
-
-            // Retrieve the original texture using the correct GetTexture2D method
-            var settings = new GetTextureSettings
+            // 2) Primary route: GetTexture2D(settings)
+            Texture2D originalTexture = null;
+            try
             {
-                archive = archive,
-                record = record,
-                frame = 0,
-                alphaIndex = 0
-            };
+                var settings = new GetTextureSettings {
+                    archive    = archive,
+                    record     = record,
+                    frame      = 0,
+                    alphaIndex = 0
+                };
+                GetTextureResults results = DaggerfallUnity.Instance.MaterialReader
+                    .TextureReader.GetTexture2D(settings);
+                originalTexture = results.albedoMap;  // ← directly assign the field
+            }
+            catch (Exception ex)
+            {
+                if (verboseLogs) Debug.LogWarning($"[GetOriginalScale] Primary GetTexture2D threw: {ex.Message}");
+            }
 
-            GetTextureResults textureResults = DaggerfallUnity.Instance.MaterialReader.TextureReader.GetTexture2D(settings);
-            Texture2D originalTexture = textureResults.albedoMap;
+            // 3) Fallback #1: TextureReplacement
+            if (originalTexture == null)
+            {
+                if (verboseLogs) Debug.LogWarning($"[GetOriginalScale] Primary route failed, trying TextureReplacement…");
+                try
+                {
+                    if (TextureReplacement.TryImportTexture(archive, record, 0, out Texture2D repTex))
+                    {
+                        originalTexture = repTex;
+                        if (verboseLogs) Debug.Log($"[GetOriginalScale] Got texture via TextureReplacement.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (verboseLogs) Debug.LogWarning($"[GetOriginalScale] TextureReplacement threw: {ex.Message}");
+                }
+            }
+
+            // 4) Fallback #2: simple overload
+            if (originalTexture == null)
+            {
+                if (verboseLogs) Debug.LogWarning($"[GetOriginalScale] Fallback #1 failed, trying simple GetTexture2D(int,int)…");
+                try
+                {
+                    originalTexture = DaggerfallUnity.Instance.MaterialReader
+                        .TextureReader.GetTexture2D(archive, record);
+                    if (originalTexture != null && verboseLogs)
+                        Debug.Log($"[GetOriginalScale] Got texture via simple overload.");
+                }
+                catch (Exception ex)
+                {
+                    if (verboseLogs) Debug.LogWarning($"[GetOriginalScale] Simple GetTexture2D threw: {ex.Message}");
+                }
+            }
 
             if (originalTexture == null)
             {
-                if (verboseLogs) Debug.LogError($"[GetOriginalScale] Failed to get original texture for archive {archive}, record {record}.");
-                return 1.0f; // Default to 1.0f scale if unable to get texture
+                if (verboseLogs) Debug.LogError($"[GetOriginalScale] All texture routes failed for {archive}-{record}.");
+                return 1f;
             }
 
-            // Retrieve texture dimensions
-            int textureWidth = originalTexture.width;
-            int textureHeight = originalTexture.height;
+            // 5) Compute scale…
+            int w = originalTexture.width;
+            int h = originalTexture.height;
+            float scaleX = (meshSize.x * 40f) / w;
+            float scaleY = (meshSize.y * 40f) / h;
+            float finalScale = (scaleX + scaleY) * 0.5f;
 
-            // Debugging the original texture dimensions
-            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original Texture size (Width, Height): {textureWidth}, {textureHeight}");
-
-            // Calculate the scale based on MeshX/TextureWidth or MeshY/TextureHeight
-            float scaleX = (meshSize.x * 40.0f) / textureWidth;
-            float scaleY = (meshSize.y * 40.0f) / textureHeight;
-
-            // For simplicity, return the average of X and Y scales
-            float originalScale = (scaleX + scaleY) / 2.0f;
-
-            // Debugging the final scale
-            if (verboseLogs) Debug.Log($"[GetOriginalScale] Original scale calculated: {originalScale}");
-
-            return originalScale;
+            if (verboseLogs) Debug.Log($"[GetOriginalScale] Computed scale: {finalScale}");
+            return finalScale;
         }
 
         void LoadSettingsFromCSV()
@@ -845,13 +874,13 @@ namespace AnimatedPeople
             meshRenderer.shadowCastingMode = (DaggerfallUnity.Settings.GeneralBillboardShadows && !isLightArchive) ? ShadowCastingMode.TwoSided : ShadowCastingMode.Off;
 
             // Add NPC trigger collider
-            if (summary.FlatType == FlatTypes.NPC)
-            {
+            //if (summary.FlatType == FlatTypes.NPC)
+            //{
                 Collider col = gameObject.GetComponent<BoxCollider>();
                 if (col == null)
                     col = gameObject.AddComponent<BoxCollider>();
                 col.isTrigger = true;
-            }
+            //}
 
             if(verboseLogs) Debug.Log($"[VE-AP] Successfully set material for archive={archive}, record={record}, size={summary.Size}, scale={scale}");
             return material;
