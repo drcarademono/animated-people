@@ -89,6 +89,8 @@ namespace AnimatedPeople
         bool materialSet = false;
         bool aligned = false;
     
+        static Mod rrMod;
+        static bool rrEnabled;
         bool RnRFlag = false;
 
 	    private static Mod FlatReplacerMod;
@@ -108,6 +110,13 @@ namespace AnimatedPeople
 		    {
 			    FlatReplacerModEnabled = true;
 			    if(verboseLogs) Debug.Log("VE-AP: Flat Replacer Mod is active");
+		    }
+
+		    rrMod = ModManager.Instance.GetModFromGUID("d828b782-46e9-40e7-8ae6-19cde308032e");
+		    if (rrMod != null && rrMod.Enabled)
+		    {
+			    rrEnabled = true;
+			    if(verboseLogs) Debug.Log("VE-AP: RoleplayRealism Mod is active");
 		    }
 
             mod.IsReady = true;
@@ -402,76 +411,141 @@ namespace AnimatedPeople
         {
             if (verboseLogs) Debug.Log("[VE-AP] Checking and updating archive/record.");
 
+            bool didFlatReplacer = false;
+
+            // --- 1) FlatReplacer logic ---
             var key = ((uint)Archive << 16) + (uint)Record;
-            if (!AnimatedPeople.flatReplacements.ContainsKey(key))
-                return;
-
-            // Are we inside right now?
-            bool inside = GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon
-                          || GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding;
-
-            var playerGps    = GameManager.Instance.PlayerGPS;
-            var buildingData = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData;
-            var mapData      = playerGps.CurrentLocation.MapTableData;
-            
-            // Choose a seed: buildingKey if inside, else mapId
-            int seed = inside
-                ? (int)buildingData.buildingKey            // your unique building key
-                : (int)mapData.MapId;                      // the current location’s MapID
-
-            var rng = new System.Random(seed);
-
-            var candidates = new List<int>();
-            foreach (var (replacement, idx) in AnimatedPeople.flatReplacements[key]
-                                                .Select((r, i) => (r.Record, i)))
+            if (AnimatedPeople.flatReplacements.ContainsKey(key))
             {
-                // 1) Region filter (always)
-                if (replacement.Regions[0] != -1 
-                    && !replacement.Regions.Contains(playerGps.CurrentRegionIndex))
-                    continue;
+                // Are we inside right now?
+                bool inside = GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon
+                              || GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding;
 
-                // 2) Faction filter (use the billboard’s faction, not buildingData outdoors)
-                int npcFaction = summary.FactionOrMobileID;
-                if (replacement.FactionId != -1 && replacement.FactionId != npcFaction)
-                    continue;
+                var playerGps    = GameManager.Instance.PlayerGPS;
+                var buildingData = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData;
+                var mapData      = playerGps.CurrentLocation.MapTableData;
 
-                // 3) Building‐type & quality only indoors
-                if (inside)
+                // Choose a seed: buildingKey if inside, else mapId
+                int seed = inside
+                    ? (int)buildingData.buildingKey
+                    : (int)mapData.MapId;
+
+                var rng = new System.Random(seed);
+                var candidates = new List<int>();
+
+                foreach (var (replacement, idx) in AnimatedPeople.flatReplacements[key]
+                                                    .Select((r, i) => (r.Record, i)))
                 {
-                    if (replacement.BuildingType != -1 
-                        && replacement.BuildingType != (int)buildingData.buildingType)
+                    // region filter
+                    if (replacement.Regions[0] != -1 
+                        && !replacement.Regions.Contains(playerGps.CurrentRegionIndex))
                         continue;
-                    if (buildingData.quality < replacement.QualityMin
-                        || buildingData.quality > replacement.QualityMax)
+
+                    // faction filter
+                    int npcFaction = summary.FactionOrMobileID;
+                    if (replacement.FactionId != -1 
+                        && replacement.FactionId != npcFaction)
                         continue;
+
+                    // building‐type & quality only indoors
+                    if (inside)
+                    {
+                        if (replacement.BuildingType != -1 
+                            && replacement.BuildingType != (int)buildingData.buildingType)
+                            continue;
+                        if (buildingData.quality < replacement.QualityMin
+                            || buildingData.quality > replacement.QualityMax)
+                            continue;
+                    }
+
+                    candidates.Add(idx);
                 }
 
-                candidates.Add(idx);
+                if (candidates.Count > 0)
+                {
+                    // deterministically pick one
+                    int choice = candidates[rng.Next(candidates.Count)];
+                    var chosen = AnimatedPeople.flatReplacements[key][choice].Record;
+
+                    Archive              = chosen.ReplaceTextureArchive;
+                    Record               = chosen.ReplaceTextureRecord;
+                    useExactDimensions   = chosen.UseExactDimensions;
+
+                    if (verboseLogs) Debug.Log(
+                        $"[VE-AP] FlatReplacer picked {Archive}-{Record} (seed {seed})");
+
+                    // apply
+                    SetMaterial(Archive, Record);
+                    if (chosen.FlatPortrait > -1)
+                    {
+                        HasCustomPortrait    = true;
+                        CustomPortraitRecord = chosen.FlatPortrait;
+                    }
+
+                    didFlatReplacer = true;
+                }
+                else if (verboseLogs)
+                {
+                    Debug.Log("[VE-AP] No FlatReplacer candidates found.");
+                }
             }
 
-            if (candidates.Count == 0)
-            {
-                if (verboseLogs) Debug.Log("[VE-AP] No valid replacements after filtering.");
+            // if FlatReplacer already swapped, stop here
+            if (didFlatReplacer)
                 return;
-            }
 
-            // Pick deterministically
-            int choice = candidates[rng.Next(candidates.Count)];
-            var chosen = AnimatedPeople.flatReplacements[key][choice].Record;
-
-            Archive              = chosen.ReplaceTextureArchive;
-            Record               = chosen.ReplaceTextureRecord;
-            useExactDimensions   = chosen.UseExactDimensions;
-
-            if (verboseLogs) Debug.Log($"[VE-AP] Deterministically picked replacement {Archive}-{Record} with seed {seed}");
-
-            // Apply it
-            SetMaterial(Archive, Record);
-
-            if (chosen.FlatPortrait > -1)
+            // --- 2) RnR fallback logic ---
+            if (rrEnabled)
             {
-                HasCustomPortrait      = true;
-                CustomPortraitRecord   = chosen.FlatPortrait;
+                // only swap inside shops/taverns
+                var enterExit    = GameManager.Instance.PlayerEnterExit;
+                var buildingData = enterExit.Interior.BuildingData;
+                if (enterExit.IsPlayerInsideBuilding 
+                    && (buildingData.BuildingType == DFLocation.BuildingTypes.Tavern
+                        || RMBLayout.IsShop(buildingData.BuildingType)))
+                {
+                    int newRecord = -1;
+
+                    if (Archive == 182 && Record == 0)
+                        newRecord = GetRecord_182_0(buildingData.Quality);
+                    else if (Archive == 182 && Record == 1)
+                    {
+                        if (buildingData.Quality < 12) newRecord = 4;
+                        else if (buildingData.Quality > 14) newRecord = 5;
+                    }
+                    else if (Archive == 182 && Record == 2)
+                    {
+                        if (buildingData.Quality > 12) newRecord = 6;
+                    }
+
+                    if (newRecord > -1)
+                    {
+                        if (verboseLogs)
+                            Debug.Log($"[VE-AP] Applying RnR fallback swap: 197-{newRecord}");
+
+                        Archive = 197;
+                        Record  = newRecord;
+                        useExactDimensions = true;  // match RnR’s defaults
+
+                        SetMaterial(Archive, Record);
+                    }
+                    else if (verboseLogs)
+                    {
+                        Debug.Log("[VE-AP] RnR fallback: no record for this quality");
+                    }
+                }
+            }
+        }
+
+        private static int GetRecord_182_0(byte quality)
+        {
+            switch (quality)
+            {
+                case 6: case 7: case 8: case 9:  return 0;
+                case 10:case 11:case 12:case 13: return 1;
+                case 14:case 15:case 16:case 17: return 2;
+                case 18:case 19:case 20:        return 3;
+                default:                         return -1;
             }
         }
 
@@ -484,9 +558,9 @@ namespace AnimatedPeople
             var facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
             GameManager.Instance.PlayerEntity.FactionData.GetFactionData(TalkManager.Instance.StaticNPC.Data.factionID, out var factionData);
 
-            if (RnRFlag && RnRArchive == 197 && RnRRecord >= 0 && RnRRecord <= 6)
+            if (Archive == 197 && Record >= 0 && Record <= 6)
             {
-                int portraitId = 197000 + RnRRecord;
+                int portraitId = 197000 + Record;
                 DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, portraitId);
                 return;
             }
@@ -559,8 +633,8 @@ namespace AnimatedPeople
 
                 summary.Archive = Archive;
                 summary.Record = Record;
-                if (!RnRFlag) AlignToBase();
-                //AlignToBase();
+                //if (!RnRFlag) AlignToBase();
+                AlignToBase();
 
                 int frameCount = GetFrameCount();
 
@@ -702,17 +776,17 @@ namespace AnimatedPeople
             // archive-record. Ignore their calls to SetMaterial
             if (archive != Archive || record != Record)
             {
-                //return null;
-                RnRArchive = archive;
-                RnRRecord = record;
-                RnRFlag = true;
+                return null;
+                //RnRArchive = archive;
+                //RnRRecord = record;
+                //RnRFlag = true;
             }
 
             if (archive == 0 && record == 0) // Fixes exterior NPCs, which must be called as 0-0 somehow in RMBLayout.
             {
                 archive = Archive;
                 record = Record;
-                RnRFlag = false;
+                //RnRFlag = false;
             }
 
             // Get DaggerfallUnity
