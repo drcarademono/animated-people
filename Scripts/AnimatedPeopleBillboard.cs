@@ -404,54 +404,74 @@ namespace AnimatedPeople
 
             var key = ((uint)Archive << 16) + (uint)Record;
             if (!AnimatedPeople.flatReplacements.ContainsKey(key))
-            {
-                if (verboseLogs) Debug.Log($"[VE-AP] No replacement available for archive {Archive}, record {Record}.");
-                return; // No replacement available for this archive/record.
-            }
+                return;
 
-            var candidates = new List<byte>();
-            var playerGps = GameManager.Instance.PlayerGPS;
+            // Are we inside right now?
+            bool inside = GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon
+                          || GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding;
+
+            var playerGps    = GameManager.Instance.PlayerGPS;
             var buildingData = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData;
+            var mapData      = playerGps.CurrentLocation.MapTableData;
+            
+            // Choose a seed: buildingKey if inside, else mapId
+            int seed = inside
+                ? (int)buildingData.buildingKey            // your unique building key
+                : (int)mapData.MapId;                      // the current location’s MapID
 
-            for (var i = 0; i < AnimatedPeople.flatReplacements[key].Count; i++)
+            var rng = new System.Random(seed);
+
+            var candidates = new List<int>();
+            foreach (var (replacement, idx) in AnimatedPeople.flatReplacements[key]
+                                                .Select((r, i) => (r.Record, i)))
             {
-                var replacementRecord = AnimatedPeople.flatReplacements[key][i].Record;
-                var regionFound = replacementRecord.Regions[0] == -1 || replacementRecord.Regions.Contains(playerGps.CurrentRegionIndex);
-
-                if (!regionFound)
+                // 1) Region filter (always)
+                if (replacement.Regions[0] != -1 
+                    && !replacement.Regions.Contains(playerGps.CurrentRegionIndex))
                     continue;
 
-                if ((replacementRecord.FactionId != -1 && replacementRecord.FactionId != buildingData.factionID) ||
-                    (replacementRecord.BuildingType != -1 && replacementRecord.BuildingType != (int)buildingData.buildingType) ||
-                    (buildingData.quality < replacementRecord.QualityMin || buildingData.quality > replacementRecord.QualityMax))
+                // 2) Faction filter (use the billboard’s faction, not buildingData outdoors)
+                int npcFaction = summary.FactionOrMobileID;
+                if (replacement.FactionId != -1 && replacement.FactionId != npcFaction)
                     continue;
 
-                candidates.Add((byte)i);
+                // 3) Building‐type & quality only indoors
+                if (inside)
+                {
+                    if (replacement.BuildingType != -1 
+                        && replacement.BuildingType != (int)buildingData.buildingType)
+                        continue;
+                    if (buildingData.quality < replacement.QualityMin
+                        || buildingData.quality > replacement.QualityMax)
+                        continue;
+                }
+
+                candidates.Add(idx);
             }
 
             if (candidates.Count == 0)
             {
-                if (verboseLogs) Debug.Log("[VE-AP] No valid candidates found for replacement.");
-                return; // No valid candidates found.
+                if (verboseLogs) Debug.Log("[VE-AP] No valid replacements after filtering.");
+                return;
             }
 
-            var chosenIndex = candidates.Count > 1 ? new System.Random().Next(candidates.Count) : 0;
-            var chosenReplacement = AnimatedPeople.flatReplacements[key][candidates[chosenIndex]];
+            // Pick deterministically
+            int choice = candidates[rng.Next(candidates.Count)];
+            var chosen = AnimatedPeople.flatReplacements[key][choice].Record;
 
-            if (verboseLogs) Debug.Log($"[VE-AP] Replacing archive {Archive}, record {Record} with archive {chosenReplacement.Record.ReplaceTextureArchive}, record {chosenReplacement.Record.ReplaceTextureRecord}. UseExactDimension: {chosenReplacement.Record.UseExactDimensions}.");
+            Archive              = chosen.ReplaceTextureArchive;
+            Record               = chosen.ReplaceTextureRecord;
+            useExactDimensions   = chosen.UseExactDimensions;
 
-            Archive = chosenReplacement.Record.ReplaceTextureArchive;
-            Record = chosenReplacement.Record.ReplaceTextureRecord;
-            useExactDimensions = chosenReplacement.Record.UseExactDimensions;
+            if (verboseLogs) Debug.Log($"[VE-AP] Deterministically picked replacement {Archive}-{Record} with seed {seed}");
 
-            // Update material and mesh
+            // Apply it
             SetMaterial(Archive, Record);
 
-            // Set custom portrait if applicable
-            if (chosenReplacement.Record.FlatPortrait > -1)
+            if (chosen.FlatPortrait > -1)
             {
-                HasCustomPortrait = true;
-                CustomPortraitRecord = chosenReplacement.Record.FlatPortrait;
+                HasCustomPortrait      = true;
+                CustomPortraitRecord   = chosen.FlatPortrait;
             }
         }
 
@@ -723,6 +743,9 @@ namespace AnimatedPeople
                 size *= scale;
                 summary.AtlasedMaterial = false;
                 summary.AnimatedMaterial = summary.ImportedTextures.FrameCount > 1;
+
+                transform.localScale = Vector3.one * originalScale; // Required for custom textures to properly AlignToBase in exterior
+                summary.Size = new Vector2(size.x * originalScale, size.y * originalScale);
             }
             else if (TextureReplacement.GetStaticBillboardMaterial(gameObject, archive, record, ref summary, out scale))
             {
