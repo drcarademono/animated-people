@@ -937,7 +937,9 @@ namespace AnimatedPeople
                     // Optional: You can leave UV adjustment if necessary
                     Vector2 uv = Vector2.zero;  // Set default UVs
                     summary.Rect = new Rect(uv.x, uv.y, 1 - 2 * uv.x, 1 - 2 * uv.y);
-                    AlignToBase();
+
+                    //aligned = false;
+                    //AlignToBase();
                 }
 
                 if (xml != null)
