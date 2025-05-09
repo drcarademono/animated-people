@@ -551,27 +551,46 @@ namespace AnimatedPeople
 
         private void OnWindowChange(object sender, EventArgs e)
         {
-            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow || !TalkManager.Instance.StaticNPC)
+            // Only fire when the talk window is open and there's a StaticNPC
+            if (DaggerfallUI.UIManager.TopWindow != DaggerfallUI.Instance.TalkWindow)
                 return;
 
-            var replacementBillboard = TalkManager.Instance.StaticNPC.gameObject.GetComponent<AnimatedPeopleBillboard>();
-            var facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-            GameManager.Instance.PlayerEntity.FactionData.GetFactionData(TalkManager.Instance.StaticNPC.Data.factionID, out var factionData);
+            var staticNPC = TalkManager.Instance.StaticNPC;
+            if (staticNPC == null)
+                return;
 
-            if (Archive == 197 && Record >= 0 && Record <= 6)
+            var replacementBillboard = staticNPC.gameObject
+                .GetComponent<AnimatedPeopleBillboard>();
+            if (replacementBillboard == null)
+                return;
+
+            // Which face archive are we using?
+            var facePortraitArchive = DaggerfallWorkshop.Game.UserInterface
+                .DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+
+            // Figure out if we need to use SpecialFaces instead
+            GameManager.Instance.PlayerEntity.FactionData
+                .GetFactionData(staticNPC.Data.factionID, out var factionData);
+
+            if (replacementBillboard.Archive == 197
+                && replacementBillboard.Record >= 0
+                && replacementBillboard.Record <= 6)
             {
-                int portraitId = 197000 + Record;
-                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, portraitId);
+                int portraitId = 197000 + replacementBillboard.Record;
+                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(
+                    facePortraitArchive, portraitId);
                 return;
             }
 
             if (factionData.type == 4 && factionData.face <= 60)
-                facePortraitArchive = DaggerfallWorkshop.Game.UserInterface.DaggerfallTalkWindow.FacePortraitArchive.SpecialFaces;
+                facePortraitArchive = DaggerfallWorkshop.Game.UserInterface
+                    .DaggerfallTalkWindow.FacePortraitArchive.SpecialFaces;
 
-            if (replacementBillboard && replacementBillboard.HasCustomPortrait)
+            if (replacementBillboard.HasCustomPortrait)
             {
-                if(verboseLogs) Debug.Log($"[VE-AP] Setting custom portrait: {replacementBillboard.CustomPortraitRecord}");
-                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(facePortraitArchive, replacementBillboard.CustomPortraitRecord);
+                DaggerfallUI.Instance.TalkWindow.SetNPCPortrait(
+                    facePortraitArchive,
+                    replacementBillboard.CustomPortraitRecord);
             }
         }
 
