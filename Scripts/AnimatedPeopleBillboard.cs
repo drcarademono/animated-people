@@ -441,15 +441,12 @@ namespace AnimatedPeople
                         && !replacement.Regions.Contains(playerGps.CurrentRegionIndex))
                         continue;
 
-                    // faction filter
-                    int npcFaction = summary.FactionOrMobileID;
-                    if (replacement.FactionId != -1 
-                        && replacement.FactionId != npcFaction)
-                        continue;
-
                     // building‐type & quality only indoors
                     if (inside)
                     {
+                        if (replacement.FactionId != -1 
+                            && replacement.FactionId != (int)buildingData.factionID)
+                            continue;
                         if (replacement.BuildingType != -1 
                             && replacement.BuildingType != (int)buildingData.buildingType)
                             continue;
